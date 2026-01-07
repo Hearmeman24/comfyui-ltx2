@@ -303,6 +303,19 @@ for file in "$SOURCE_DIR"/*; do
     fi
 done
 
+# Update workflow JSON files if lightweight_fp8 is enabled
+if [ "$lightweight_fp8" = "true" ]; then
+    echo "🔧 Updating workflow files for FP8 model..."
+    for json_file in "$WORKFLOW_DIR"/*.json; do
+        if [ -f "$json_file" ]; then
+            sed -i 's/ltx-2-19b-dev\.safetensors/ltx-2-19b-dev-fp8.safetensors/g' "$json_file"
+            echo "✅ Updated: $(basename "$json_file")"
+        fi
+    done
+else
+    echo "⏭️  Skipping workflow FP8 updates (lightweight_fp8 is false)"
+fi
+
 # Workspace as main working directory
 echo "cd $NETWORK_VOLUME" >> ~/.bashrc
 
