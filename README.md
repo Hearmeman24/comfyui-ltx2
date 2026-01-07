@@ -53,18 +53,27 @@ The following environment variables can be configured:
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `lightweight_fp8` | `false` | Enable FP8 quantized model variant for reduced memory usage |
+| `civitai_token` | (empty) | CivitAI API token for downloading models and LoRAs |
 | `LORAS_IDS_TO_DOWNLOAD` | (empty) | Comma-separated CivitAI LoRA IDs to download |
-| `SDXL_MODEL_IDS_TO_DOWNLOAD` | (empty) | Comma-separated CivitAI model IDs to download |
+| `CHECKPOINT_IDS_TO_DOWNLOAD` | (empty) | Comma-separated CivitAI checkpoint IDs to download |
 
-**Example: Enable FP8 Lightweight Mode**
+**Example Configuration**
 ```bash
 lightweight_fp8=true
+civitai_token=your_civitai_api_token_here
+LORAS_IDS_TO_DOWNLOAD=123456,789012,345678
+CHECKPOINT_IDS_TO_DOWNLOAD=111222,333444
 ```
 
-When enabled:
+**FP8 Lightweight Mode** (`lightweight_fp8=true`)
 - Downloads `ltx-2-19b-dev-fp8.safetensors` instead of full precision
 - Automatically updates workflow JSON files to reference the FP8 variant
 - Reduces VRAM requirements while maintaining quality
+
+**CivitAI Downloads** (`civitai_token`, `LORAS_IDS_TO_DOWNLOAD`, `CHECKPOINT_IDS_TO_DOWNLOAD`)
+- Use your CivitAI API token to authenticate model downloads
+- Provide comma-separated list of CivitAI model/LoRA IDs
+- Models will download automatically during startup
 
 ---
 
