@@ -195,11 +195,14 @@ download_model() {
 
 
 # Download LTX-2 Main Model
-download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev.safetensors" "$DIFFUSION_MODELS_DIR/ltx-2-19b-dev.safetensors"
+download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev.safetensors" "$CHECKPOINTS_DIR/ltx-2-19b-dev.safetensors"
+
+# Download LTX-2 Text Encoder (Gemma)
+download_model "https://huggingface.co/google/gemma-3-12b-it-qat-q4_0-unquantized/resolve/main/model.safetensors" "$TEXT_ENCODERS_DIR/gemma-3-12b-it-qat-q4_0.safetensors"
 
 # Download LTX-2 Upscalers
-download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors" "$UPSCALE_MODELS_DIR/ltx-2-spatial-upscaler-x2-1.0.safetensors"
-download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-temporal-upscaler-x2-1.0.safetensors" "$UPSCALE_MODELS_DIR/ltx-2-temporal-upscaler-x2-1.0.safetensors"
+download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors" "$LATENT_UPSCALE_MODELS_DIR/ltx-2-spatial-upscaler-x2-1.0.safetensors"
+download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-temporal-upscaler-x2-1.0.safetensors" "$LATENT_UPSCALE_MODELS_DIR/ltx-2-temporal-upscaler-x2-1.0.safetensors"
 
 # Download LTX-2 Distilled LoRA
 download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-lora-384.safetensors" "$LORAS_DIR/ltx-2-19b-distilled-lora-384.safetensors"
