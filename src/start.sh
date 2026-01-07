@@ -326,22 +326,6 @@ fi
 echo "Config file setup complete!"
 echo "Default preview method updated to 'auto'"
 
-# Wait for SageAttention build to complete and check status
-while kill -0 "$SAGE_PID" 2>/dev/null; do
-    echo "🛠️  SageAttention is currently installing... (this can take around 5 minutes)"
-    sleep 10
-done
-
-# Check if build completed successfully
-SAGE_ATTENTION_AVAILABLE=false
-if [ -f "/tmp/sage_build_done" ]; then
-    SAGE_ATTENTION_AVAILABLE=true
-    echo "✅ SageAttention build completed successfully"
-else
-    echo "⚠️  SageAttention build failed. Launching ComfyUI without --use-sage-attention flag"
-    echo "Build log available at /tmp/sage_build.log"
-fi
-
 URL="http://127.0.0.1:8188"
 echo "Starting ComfyUI"
 
