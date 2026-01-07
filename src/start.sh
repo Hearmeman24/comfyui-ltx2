@@ -210,6 +210,12 @@ download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-
 # Download general-purpose upscaler
 download_model "https://objectstorage.us-phoenix-1.oraclecloud.com/n/ax6ygfvpvzka/b/open-modeldb-files/o/1x-ITF-SkinDiffDetail-Lite-v1.pth" "$UPSCALE_MODELS_DIR/1x-ITF-SkinDiffDetail-Lite-v1.pth"
 
+# Download Lotus Depth Estimation Model
+download_model "https://huggingface.co/Kijai/lotus-comfyui/resolve/main/lotus-depth-d-v-1-1-fp16.safetensors" "$DIFFUSION_MODELS_DIR/lotus-depth-d-v-1-1-fp16.safetensors"
+
+# Download Stability VAE
+download_model "https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors" "$VAE_DIR/vae-ft-mse-840000-ema-pruned.safetensors"
+
 # Download additional models
 echo "📥 Starting additional model downloads..."
 
