@@ -332,10 +332,6 @@ echo "Starting ComfyUI"
 # Build ComfyUI command with optional flags
 COMFYUI_CMD="python3 $NETWORK_VOLUME/ComfyUI/main.py --listen"
 
-if [ "$SAGE_ATTENTION_AVAILABLE" == "true" ]; then
-  COMFYUI_CMD="$COMFYUI_CMD --use-sage-attention"
-fi
-
 if [ "$USE_EXTRA_MODEL_PATHS" == "true" ]; then
   COMFYUI_CMD="$COMFYUI_CMD --extra-model-paths-config /comfyui-ltx2/src/extra_model_paths.yaml"
 fi
