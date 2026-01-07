@@ -106,8 +106,6 @@ echo "Installing ComfyUI requirements..."
 /opt/venv/bin/python3 -m pip install -r "$NETWORK_VOLUME/ComfyUI/requirements.txt"
 echo "✅ ComfyUI requirements installed"
 
-# Note: qwen-vl-utils is not needed for LTX-2
-
 # Clone ComfyUI-VAE-Utils custom node
 CUSTOM_NODES_DIR="$NETWORK_VOLUME/ComfyUI/custom_nodes"
 VAE_UTILS_DIR="$CUSTOM_NODES_DIR/ComfyUI-VAE-Utils"
@@ -276,7 +274,7 @@ mkdir -p "$WORKFLOW_DIR"
 # Ensure the file exists in the current directory before moving it
 cd /
 
-SOURCE_DIR="/comfyui-qwen-template/workflows"
+SOURCE_DIR="/comfyui-ltx2/workflows"
 
 # Ensure destination directory exists
 mkdir -p "$WORKFLOW_DIR"
@@ -365,7 +363,7 @@ if [ "$SAGE_ATTENTION_AVAILABLE" == "true" ]; then
 fi
 
 if [ "$USE_EXTRA_MODEL_PATHS" == "true" ]; then
-  COMFYUI_CMD="$COMFYUI_CMD --extra-model-paths-config /comfyui-qwen-template/src/extra_model_paths.yaml"
+  COMFYUI_CMD="$COMFYUI_CMD --extra-model-paths-config /comfyui-ltx2/src/extra_model_paths.yaml"
 fi
 
 nohup $COMFYUI_CMD > "$NETWORK_VOLUME/comfyui_${RUNPOD_POD_ID}_nohup.log" 2>&1 &
