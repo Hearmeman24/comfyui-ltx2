@@ -7,6 +7,14 @@ export LD_PRELOAD="${TCMALLOC}"
 # Set the network volume path
 NETWORK_VOLUME="/workspace"
 
+# Set default for lightweight_fp8 mode
+lightweight_fp8="${lightweight_fp8:-false}"
+if [ "$lightweight_fp8" = "true" ]; then
+    echo "🔧 Lightweight FP8 mode enabled"
+else
+    echo "📊 Running in full precision mode"
+fi
+
 # This is in case there's any special installs or overrides that needs to occur when starting the machine before starting ComfyUI
 if [ -f "/workspace/additional_params.sh" ]; then
     chmod +x /workspace/additional_params.sh
