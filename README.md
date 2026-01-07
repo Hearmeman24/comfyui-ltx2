@@ -80,16 +80,27 @@ CHECKPOINT_IDS_TO_DOWNLOAD=111222,333444
 ### Deploying the Template
 
 1. **Configure Environment Variables** (optional)
-   - Set `lightweight_fp8=true` for reduced memory usage
-   - Add CivitAI API token if downloading additional models
+   - Set `lightweight_fp8=true` for FP8 lightweight mode (default: false)
+   - Set `civitai_token` with your CivitAI API token
+   - Set `LORAS_IDS_TO_DOWNLOAD` with comma-separated LoRA IDs
+   - Set `CHECKPOINT_IDS_TO_DOWNLOAD` with comma-separated checkpoint IDs
+
+   Example:
+   ```
+   lightweight_fp8=true
+   civitai_token=your_token_here
+   LORAS_IDS_TO_DOWNLOAD=123456,789012
+   CHECKPOINT_IDS_TO_DOWNLOAD=111222
+   ```
 
 2. **Deploy**
    - Click Deploy and wait for setup to complete
-   - Initial setup typically takes **5-30 minutes** depending on network speed
+   - Initial setup typically takes **5-30 minutes** depending on network speed and selected models
 
 3. **Access ComfyUI**
    - After startup, navigate to ComfyUI at the provided URL
    - Pre-configured workflows are ready to use
+   - Additional downloaded models from CivitAI will be available
 
 ---
 
