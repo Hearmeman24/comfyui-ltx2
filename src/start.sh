@@ -188,7 +188,11 @@ download_model() {
 
 
 # Download LTX-2 Main Model
-download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev.safetensors" "$CHECKPOINTS_DIR/ltx-2-19b-dev.safetensors"
+if [ "$lightweight_fp8" = "true" ]; then
+    download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev-fp8.safetensors" "$CHECKPOINTS_DIR/ltx-2-19b-dev-fp8.safetensors"
+else
+    download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev.safetensors" "$CHECKPOINTS_DIR/ltx-2-19b-dev.safetensors"
+fi
 
 # Download LTX-2 Text Encoder (Gemma)
 download_model "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors" "$TEXT_ENCODERS_DIR/gemma_3_12B_it.safetensors"
