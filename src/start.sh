@@ -361,7 +361,7 @@ URL="http://127.0.0.1:8188"
 echo "Starting ComfyUI"
 
 # Build ComfyUI command with optional flags
-COMFYUI_CMD="python3 $NETWORK_VOLUME/ComfyUI/main.py --listen"
+COMFYUI_CMD="python3 $NETWORK_VOLUME/ComfyUI/main.py --listen --enable-cors-header '*'"
 
 if [ "$USE_EXTRA_MODEL_PATHS" == "true" ]; then
   COMFYUI_CMD="$COMFYUI_CMD --extra-model-paths-config /comfyui-ltx2/src/extra_model_paths.yaml"
