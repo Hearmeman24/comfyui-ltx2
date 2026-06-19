@@ -5,25 +5,22 @@ FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04 AS base
 ENV DEBIAN_FRONTEND=noninteractive \
    PIP_PREFER_BINARY=1 \
    PYTHONUNBUFFERED=1 \
-   CMAKE_BUILD_PARALLEL_LEVEL=8
+   CMAKE_BUILD_PARALLEL_LEVEL=8 \
+   HF_XET_HIGH_PERFORMANCE=1
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-        software-properties-common && \
-    add-apt-repository ppa:deadsnakes/ppa && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-        python3.11 python3.11-venv python3.11-dev \
+        python3.12 python3.12-venv python3.12-dev \
         python3-pip \
         curl ffmpeg ninja-build git aria2 git-lfs wget vim \
         libgl1 libglib2.0-0 build-essential gcc && \
     \
-    # make Python3.11 the default python & pip
-    ln -sf /usr/bin/python3.11 /usr/bin/python && \
+    # make Python3.12 the default python & pip
+    ln -sf /usr/bin/python3.12 /usr/bin/python && \
     ln -sf /usr/bin/pip3 /usr/bin/pip && \
     \
-    python3.11 -m venv /opt/venv && \
+    python3.12 -m venv /opt/venv && \
     \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -40,7 +37,7 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 
 # Runtime libraries
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install pyyaml gdown triton comfy-cli jupyterlab jupyterlab-lsp \
+    pip install pyyaml gdown triton jupyterlab jupyterlab-lsp \
         jupyter-server jupyter-server-terminals \
         ipykernel jupyterlab_code_formatter
 
@@ -51,11 +48,25 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install --upgrade huggingface_hub hf_xet
 RUN curl -LsSf https://hf.co/cli/install.sh | bash
 
+# ------------------------------------------------------------
+# ComfyUI install — direct clone + pip install. Replaces comfy-cli,
+# which used to clone the same repo and create a private .venv we then
+# deleted anyway. Simpler, fewer indirection layers, no ~7 GB .venv.
+#
+# The ADD below fetches the current master ref from the GitHub API on
+# every build; its content changes whenever ComfyUI master moves, which
+# invalidates the clone layer. Without it, docker_layer_caching would
+# keep serving the ComfyUI baked into the previous build's cache.
+# ------------------------------------------------------------
+ADD https://api.github.com/repos/comfyanonymous/ComfyUI/git/refs/heads/master /comfyui-master-ref.json
 RUN --mount=type=cache,target=/root/.cache/pip \
-    /usr/bin/yes | comfy --workspace /ComfyUI install
+    git clone --depth=1 https://github.com/comfyanonymous/ComfyUI.git /ComfyUI \
+    && pip install -r /ComfyUI/requirements.txt
 
 FROM base AS final
-RUN python -m pip install opencv-python
+# Make sure to use the virtual environment here too
+ENV PATH="/opt/venv/bin:$PATH"
+RUN pip install opencv-python
 
 RUN for repo in \
     https://github.com/ssitu/ComfyUI_UltimateSDUpscale.git \
@@ -94,6 +105,25 @@ RUN for repo in \
         fi; \
     done
 
+# Force GPU onnxruntime. Several custom node requirements.txt files
+# pull in plain `onnxruntime` (CPU) which shadows our GPU install
+# because both packages provide the same `onnxruntime` Python module —
+# last install wins. Reinstalling after the clone loop guarantees the
+# image ships with the CUDA provider available.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip uninstall -y onnxruntime onnxruntime-gpu 2>/dev/null || true; \
+    pip install onnxruntime-gpu
+
+# ComfyUI-Manager. Cloned as lowercase `comfyui-manager` so it loads
+# after the other custom_nodes (ComfyUI loads alphabetically — capital
+# letters first), which is required for Manager to detect IMPORT FAILED
+# states in earlier-loaded nodes.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    git clone --depth=1 https://github.com/ltdrdata/ComfyUI-Manager.git \
+        /ComfyUI/custom_nodes/comfyui-manager \
+    && if [ -f /ComfyUI/custom_nodes/comfyui-manager/requirements.txt ]; then \
+         pip install -r /ComfyUI/custom_nodes/comfyui-manager/requirements.txt; \
+       fi
 
 COPY src/start_script.sh /start_script.sh
 RUN chmod +x /start_script.sh

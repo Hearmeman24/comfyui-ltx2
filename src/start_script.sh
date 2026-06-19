@@ -15,4 +15,8 @@ else
     git clone --depth=1 "$REPO_URL" "$REPO_DIR"
 fi
 set +e
-bash "$REPO_DIR/src/start.sh"
+cp -f "$REPO_DIR/src/start.sh" /
+cp -f "$REPO_DIR/src/hf_download_manager.py" /
+cp -f "$REPO_DIR/src/build_manifest.py" /
+cp -f "$REPO_DIR/src/models_registry.json" /
+bash /start.sh

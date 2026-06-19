@@ -2,20 +2,49 @@
 """Emit an hf_download_manager manifest from models_registry.json.
 
 The WAN template gates downloads by walking enabled workflow folders
-(workflow_provisioner.py). This template ships a single fixed model set, so
-there is nothing to gate — every registry entry is queued. Files already on
-disk above a 10 MB sanity threshold are skipped (same cutoff the legacy bash
-downloader used: catches complete files, re-fetches obviously-truncated ones).
+(workflow_provisioner.py). This template ships a fixed model set instead, so we
+queue registry entries directly — but a few entries carry lightweight selection
+metadata so the legacy LTX-2 19b set can live in the registry too:
+
+  - "flag": <env-var>   — entry is queued only when that flag env var is "true"
+                          (e.g. download_ltx2_19b). No flag = always queued
+                          (the default LTX-2.3 set).
+  - "variant": full|fp8 — among entries sharing the same flag the fp8 one is
+                          queued when lightweight_fp8=true, the full one
+                          otherwise. Entries without a variant are unaffected.
+
+Files already on disk above a 10 MB sanity threshold are skipped (same cutoff
+the legacy bash downloader used: catches complete files, re-fetches
+obviously-truncated ones). Non-HF models (e.g. the Oracle-hosted skin upscaler)
+are NOT in the registry — hf_download_manager only speaks HF URLs, so those
+stay as direct aria2c steps in start.sh, mirroring WAN.
 
 Output: one `<url>\\t<dest_full_path>` line per model to --manifest.
 Run the self-check with: python build_manifest.py --selftest
 """
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 MIN_OK_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
+def select(registry: dict, env: dict, lightweight_fp8: bool) -> dict:
+    """Filter the registry by flag gating + fp8/full variant choice."""
+    enabled = {k for k, v in env.items() if v == "true"}
+    # Flag gate: drop entries whose flag is not enabled.
+    gated = {
+        n: e for n, e in registry.items()
+        if "flag" not in e or e["flag"] in enabled
+    }
+    # Variant choice: among variant-tagged entries, keep only fp8 or full.
+    want = "fp8" if lightweight_fp8 else "full"
+    return {
+        n: e for n, e in gated.items()
+        if not e.get("variant") or e["variant"] == want
+    }
 
 
 def build(registry: dict, models_root: Path) -> tuple[list[str], list[str]]:
@@ -31,7 +60,7 @@ def build(registry: dict, models_root: Path) -> tuple[list[str], list[str]]:
 
 
 def selftest() -> None:
-    """skip-existing logic + subdir join."""
+    """skip-existing logic + subdir join + flag gating + variant choice."""
     import tempfile
     reg = {
         "big.safetensors": {"url": "https://h/big", "subdir": "loras/ltx2"},
@@ -48,6 +77,25 @@ def selftest() -> None:
         big.write_bytes(b"\0" * 10)  # truncated -> must re-queue
         lines2, skipped2 = build(reg, root)
         assert skipped2 == [] and len(lines2) == 2, (skipped2, lines2)
+
+    # flag gating + variant selection
+    greg = {
+        "always.safetensors": {"url": "https://h/a", "subdir": "vae"},
+        "gated_full.safetensors": {"url": "https://h/f", "subdir": "checkpoints",
+                                   "flag": "download_ltx2_19b", "variant": "full"},
+        "gated_fp8.safetensors": {"url": "https://h/8", "subdir": "checkpoints",
+                                  "flag": "download_ltx2_19b", "variant": "fp8"},
+        "gated_te.safetensors": {"url": "https://h/t", "subdir": "text_encoders",
+                                 "flag": "download_ltx2_19b"},
+    }
+    off = select(greg, {"download_ltx2_19b": "false"}, lightweight_fp8=False)
+    assert set(off) == {"always.safetensors"}, off
+    on_full = select(greg, {"download_ltx2_19b": "true"}, lightweight_fp8=False)
+    assert set(on_full) == {"always.safetensors", "gated_full.safetensors",
+                            "gated_te.safetensors"}, on_full
+    on_fp8 = select(greg, {"download_ltx2_19b": "true"}, lightweight_fp8=True)
+    assert set(on_fp8) == {"always.safetensors", "gated_fp8.safetensors",
+                           "gated_te.safetensors"}, on_fp8
     print("ok")
 
 
@@ -59,7 +107,12 @@ def main() -> int:
     args = ap.parse_args()
 
     registry = json.loads(Path(args.registry).read_text())
-    lines, skipped = build(registry, Path(args.models_root))
+    selected = select(
+        registry,
+        os.environ,
+        lightweight_fp8=os.environ.get("lightweight_fp8") == "true",
+    )
+    lines, skipped = build(selected, Path(args.models_root))
     Path(args.manifest).write_text("\n".join(lines) + ("\n" if lines else ""))
 
     print(f"[build-manifest] {len(lines)} queued, {len(skipped)} already on disk")
