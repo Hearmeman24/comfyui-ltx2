@@ -42,106 +42,76 @@ else
     jupyter-lab --ip=0.0.0.0 --allow-root --no-browser --NotebookApp.token='' --NotebookApp.password='' --ServerApp.allow_origin='*' --ServerApp.allow_credentials=True --notebook-dir=/workspace &
 fi
 
-# Check if NETWORK_VOLUME is /workspace and set up extra model paths (only if IS_DEV is true)
-USE_EXTRA_MODEL_PATHS=false
-if [ "$IS_DEV" = "true" ] && [ "$NETWORK_VOLUME" = "/workspace" ]; then
-    echo "IS_DEV is true and NETWORK_VOLUME is /workspace. Setting up extra model paths..."
-    
-    # Create /models/diffusion_models directory
-    mkdir -p /models/diffusion_models
-    
-    # Copy all .safetensors files from /workspace/ComfyUI/models/diffusion_models to /models/diffusion_models in background
-    if [ -d "/workspace/ComfyUI/models/diffusion_models" ]; then
-        echo "Copying .safetensors files from /workspace/ComfyUI/models/diffusion_models to /models/diffusion_models in background..."
-        (
-            find /workspace/ComfyUI/models/diffusion_models -name "*.safetensors" -type f | while read -r file; do
-                filename=$(basename "$file")
-                cp "$file" "/models/diffusion_models/disk_${filename}"
-            done
-            echo "✅ Finished copying .safetensors files to /models/diffusion_models"
-        ) > /tmp/model_copy.log 2>&1 &
-        USE_EXTRA_MODEL_PATHS=true
-    else
-        echo "⚠️  Source directory /workspace/ComfyUI/models/diffusion_models does not exist. Skipping copy."
+# ComfyUI source stays in the image (ephemeral, fast local disk). Models,
+# workflows, outputs, inputs, and user-added custom_nodes live on the network
+# volume via extra_model_paths.yaml + symlinks. This avoids the multi-minute
+# mv of /ComfyUI to MooseFS on first boot. Mirrors comfyui-wan.
+COMFYUI_DIR="/ComfyUI"
+PERSIST_ROOT="$NETWORK_VOLUME/ComfyUI"
+WORKFLOW_DIR="$PERSIST_ROOT/user/default/workflows"
+CUSTOM_NODES_DIR="$COMFYUI_DIR/custom_nodes"
+
+# Model category dirs live on the volume (under PERSIST_ROOT/models).
+CHECKPOINTS_DIR="$PERSIST_ROOT/models/checkpoints"
+LORAS_DIR="$PERSIST_ROOT/models/loras"
+TEXT_ENCODERS_DIR="$PERSIST_ROOT/models/text_encoders"
+VAE_DIR="$PERSIST_ROOT/models/vae"
+DIFFUSION_MODELS_DIR="$PERSIST_ROOT/models/diffusion_models"
+UPSCALE_MODELS_DIR="$PERSIST_ROOT/models/upscale_models"
+LATENT_UPSCALE_MODELS_DIR="$PERSIST_ROOT/models/latent_upscale_models"
+
+mkdir -p "$PERSIST_ROOT/models" "$PERSIST_ROOT/user" \
+         "$PERSIST_ROOT/output" "$PERSIST_ROOT/input" \
+         "$PERSIST_ROOT/custom_nodes"
+
+# Symlink user/output/input into /ComfyUI so ComfyUI uses its default code
+# paths (passing --user-directory triggers a None-user_dir bug in
+# user_manager.get_users on the current ComfyUI revision). Models +
+# custom_nodes still go through extra_model_paths.yaml (below) because we want
+# the *additive* behavior — image-baked custom_nodes + user additions — not a
+# wholesale replacement.
+if [ "$NETWORK_VOLUME" != "/" ]; then
+    # First boot only: migrate baked user/ content (default templates, schema)
+    # to the volume before swapping in the symlink. cp -an is no-clobber, so
+    # re-runs on existing volumes are safe.
+    if [ -d "$COMFYUI_DIR/user" ] && [ ! -L "$COMFYUI_DIR/user" ]; then
+        cp -an "$COMFYUI_DIR/user/." "$PERSIST_ROOT/user/" 2>/dev/null || true
+        rm -rf "$COMFYUI_DIR/user"
     fi
-else
-    if [ "$IS_DEV" != "true" ]; then
-        echo "IS_DEV is not set to true. Skipping extra model paths setup."
-    elif [ "$NETWORK_VOLUME" != "/workspace" ]; then
-        echo "NETWORK_VOLUME is not /workspace. Skipping extra model paths setup."
-    fi
+    for sub in user output input; do
+        [ -L "$COMFYUI_DIR/$sub" ] || rm -rf "$COMFYUI_DIR/$sub" 2>/dev/null || true
+        ln -sfn "$PERSIST_ROOT/$sub" "$COMFYUI_DIR/$sub"
+    done
 fi
 
-COMFYUI_DIR="$NETWORK_VOLUME/ComfyUI"
-WORKFLOW_DIR="$NETWORK_VOLUME/ComfyUI/user/default/workflows"
-MODEL_WHITELIST_DIR="$NETWORK_VOLUME/ComfyUI/user/default/ComfyUI-Impact-Subpack/model-whitelist.txt"
-DIFFUSION_MODELS_DIR="$NETWORK_VOLUME/ComfyUI/models/diffusion_models"
-CHECKPOINTS_DIR="$NETWORK_VOLUME/ComfyUI/models/checkpoints"
-LORAS_DIR="$NETWORK_VOLUME/ComfyUI/models/loras"
-TEXT_ENCODERS_DIR="$NETWORK_VOLUME/ComfyUI/models/text_encoders"
-VAE_DIR="$NETWORK_VOLUME/ComfyUI/models/vae"
-UPSCALE_MODELS_DIR="$NETWORK_VOLUME/ComfyUI/models/upscale_models"
-LATENT_UPSCALE_MODELS_DIR="$NETWORK_VOLUME/ComfyUI/models/latent_upscale_models"
-
-if [ ! -d "$COMFYUI_DIR" ]; then
-    mv /ComfyUI "$COMFYUI_DIR"
+# Generate extra_model_paths.yaml from the live $PERSIST_ROOT so paths always
+# match the actual network volume (not a baked-in /workspace assumption). Skip
+# the file + flag when there's no real persistent volume — PERSIST_ROOT would
+# equal COMFYUI_DIR and ComfyUI's defaults already cover those paths.
+EXTRA_PATHS_FLAG=""
+if [ "$NETWORK_VOLUME" != "/" ]; then
+    cat > "$COMFYUI_DIR/extra_model_paths.yaml" <<EOF
+network_volume:
+    base_path: $PERSIST_ROOT
+    checkpoints: models/checkpoints
+    clip: models/clip
+    clip_vision: models/clip_vision
+    controlnet: models/controlnet
+    diffusion_models: models/diffusion_models
+    embeddings: models/embeddings
+    loras: models/loras
+    style_models: models/style_models
+    text_encoders: models/text_encoders
+    unet: models/unet
+    upscale_models: models/upscale_models
+    latent_upscale_models: models/latent_upscale_models
+    detection: models/detection
+    vae: models/vae
+    custom_nodes: custom_nodes
+EOF
+    EXTRA_PATHS_FLAG="--extra-model-paths-config $COMFYUI_DIR/extra_model_paths.yaml"
 else
-    echo "Directory already exists, skipping move."
-fi
-
-# Update ComfyUI to master branch and pull latest changes
-echo "Updating ComfyUI repository..."
-cd "$COMFYUI_DIR"
-git checkout master
-git pull
-echo "✅ ComfyUI repository updated"
-
-# Install ComfyUI requirements
-echo "Installing ComfyUI requirements..."
-/opt/venv/bin/python3 -m pip install -r "$NETWORK_VOLUME/ComfyUI/requirements.txt"
-echo "✅ ComfyUI requirements installed"
-
-# Clone ComfyUI-VAE-Utils custom node
-CUSTOM_NODES_DIR="$NETWORK_VOLUME/ComfyUI/custom_nodes"
-VAE_UTILS_DIR="$CUSTOM_NODES_DIR/ComfyUI-VAE-Utils"
-mkdir -p "$CUSTOM_NODES_DIR"
-if [ -d "$VAE_UTILS_DIR" ]; then
-    echo "🗑️  Deleting existing ComfyUI-VAE-Utils directory..."
-    rm -rf "$VAE_UTILS_DIR"
-fi
-echo "📥 Cloning ComfyUI-VAE-Utils custom node..."
-cd "$CUSTOM_NODES_DIR"
-git clone https://github.com/spacepxl/ComfyUI-VAE-Utils.git
-echo "✅ ComfyUI-VAE-Utils cloned successfully"
-
-# Clone ComfyUI-FSampler custom node
-FSAMPLER_DIR="$CUSTOM_NODES_DIR/ComfyUI-FSampler"
-if [ ! -d "$FSAMPLER_DIR" ]; then
-    echo "📥 Cloning ComfyUI-FSampler custom node..."
-    cd "$CUSTOM_NODES_DIR"
-    git clone https://github.com/obisin/ComfyUI-FSampler.git
-    echo "✅ ComfyUI-FSampler cloned successfully"
-else
-    echo "✅ ComfyUI-FSampler already exists, skipping clone."
-fi
-
-# Clone ComfyUI-HMNodes custom node if GITHUB_PAT is set
-if [ -n "$GITHUB_PAT" ]; then
-    HMNODES_DIR="$CUSTOM_NODES_DIR/ComfyUI-HMNodes"
-    if [ ! -d "$HMNODES_DIR" ]; then
-        echo "📥 GITHUB_PAT detected. Cloning ComfyUI-HMNodes custom node..."
-        cd "$CUSTOM_NODES_DIR"
-        if git clone "https://${GITHUB_PAT}@github.com/Hearmeman24/ComfyUI-HMNodes.git" 2>&1 | tee /tmp/hmnodes_clone.log; then
-            echo "✅ ComfyUI-HMNodes cloned successfully"
-        else
-            echo "❌ Failed to clone ComfyUI-HMNodes. Error details:"
-            cat /tmp/hmnodes_clone.log
-        fi
-    else
-        echo "✅ ComfyUI-HMNodes already exists, skipping clone."
-    fi
-else
-    echo "⏭️  GITHUB_PAT not set. Skipping ComfyUI-HMNodes clone."
+    rm -f "$COMFYUI_DIR/extra_model_paths.yaml"
 fi
 
 echo "Downloading CivitAI download script to /usr/local/bin"
@@ -187,87 +157,34 @@ download_model() {
 }
 
 
-# ===================== LTX-2.3 model set (default) =====================
-# Registry-driven Hugging Face downloads via hf_download_manager (mirrors the
-# comfyui-wan template). Source of truth: src/models_registry.json. The manager
-# resolves sizes, runs a 3-way pool with hf_xet acceleration, and prints live
-# progress. build_manifest.py skips any model already present (>10 MB).
-echo "📦 Provisioning LTX-2.3 models from registry..."
-REPO_SRC="/comfyui-ltx2/src"
+# ===================== Registry-driven model provisioning =====================
+# All HF models — the default LTX-2.3 set AND the opt-in legacy LTX-2 19b set —
+# live in src/models_registry.json and flow through hf_download_manager (mirrors
+# comfyui-wan). build_manifest.py gates the 19b entries behind download_ltx2_19b
+# and picks the fp8-vs-full 19b checkpoint from lightweight_fp8 (both read from
+# the environment). The manager resolves sizes, runs a 3-way hf_xet pool with
+# live progress, and skips any model already present (>10 MB).
+#
+# Runtime scripts are copied to / by start_script.sh on every boot.
+echo "📦 Provisioning models from registry..."
 HF_QUEUE_FILE="/tmp/hf_download_queue.tsv"
-python3 "$REPO_SRC/build_manifest.py" \
-    --registry "$REPO_SRC/models_registry.json" \
-    --models-root "$COMFYUI_DIR/models" \
+python3 /build_manifest.py \
+    --registry /models_registry.json \
+    --models-root "$PERSIST_ROOT/models" \
     --manifest "$HF_QUEUE_FILE"
-python3 "$REPO_SRC/hf_download_manager.py" "$HF_QUEUE_FILE"
-echo "✅ LTX-2.3 models ready"
+python3 /hf_download_manager.py "$HF_QUEUE_FILE"
+echo "✅ Registry models ready"
 
-# ============== LTX-2 (19b) legacy set — opt-in via env var ==============
-# Set download_ltx2_19b=true to also fetch the older LTX-2 19b dev model,
-# its control/camera LoRAs, upscalers, depth model and the 19b example
-# workflows (workflows/legacy_19b/). Off by default — the template ships 2.3.
+# Non-HF legacy 19b extra: the general-purpose skin upscaler is Oracle-hosted,
+# so it can't go through the HF download manager — direct aria2c, gated on the
+# same flag. (Mirrors WAN's handling of its non-HF 2xLiveActionV1_SPAN model.)
 if [ "${download_ltx2_19b:-false}" = "true" ]; then
-    echo "📦 download_ltx2_19b=true — fetching legacy LTX-2 19b model set..."
-
-    # Download LTX-2 Main Model
-    if [ "$lightweight_fp8" = "true" ]; then
-        download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev-fp8.safetensors" "$CHECKPOINTS_DIR/ltx-2-19b-dev-fp8.safetensors"
-    else
-        download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev.safetensors" "$CHECKPOINTS_DIR/ltx-2-19b-dev.safetensors"
-    fi
-
-    # Download LTX-2 Text Encoder (Gemma)
-    download_model "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors" "$TEXT_ENCODERS_DIR/gemma_3_12B_it.safetensors"
-
-    # Download LTX-2 Upscalers
-    download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors" "$LATENT_UPSCALE_MODELS_DIR/ltx-2-spatial-upscaler-x2-1.0.safetensors"
-    download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-temporal-upscaler-x2-1.0.safetensors" "$LATENT_UPSCALE_MODELS_DIR/ltx-2-temporal-upscaler-x2-1.0.safetensors"
-
-    # Download LTX-2 Distilled LoRA
-    download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-lora-384.safetensors" "$LORAS_DIR/ltx-2-19b-distilled-lora-384.safetensors"
-
-    # Download LTX-2 Control LoRAs - Image Control
-    download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Canny-Control/resolve/main/ltx-2-19b-ic-lora-canny-control.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-canny-control.safetensors"
-    download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Depth-Control/resolve/main/ltx-2-19b-ic-lora-depth-control.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-depth-control.safetensors"
-    download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Detailer/resolve/main/ltx-2-19b-ic-lora-detailer.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-detailer.safetensors"
-    download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Pose-Control/resolve/main/ltx-2-19b-ic-lora-pose-control.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-pose-control.safetensors"
-
-    # Download LTX-2 Control LoRAs - Camera Control
-    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-In/resolve/main/ltx-2-19b-lora-camera-control-dolly-in.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-in.safetensors"
-    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Left/resolve/main/ltx-2-19b-lora-camera-control-dolly-left.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-left.safetensors"
-    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Out/resolve/main/ltx-2-19b-lora-camera-control-dolly-out.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-out.safetensors"
-    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Right/resolve/main/ltx-2-19b-lora-camera-control-dolly-right.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-right.safetensors"
-    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Jib-Down/resolve/main/ltx-2-19b-lora-camera-control-jib-down.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-jib-down.safetensors"
-    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Jib-Up/resolve/main/ltx-2-19b-lora-camera-control-jib-up.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-jib-up.safetensors"
-    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Static/resolve/main/ltx-2-19b-lora-camera-control-static.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-static.safetensors"
-
-    # Download general-purpose upscaler
     download_model "https://objectstorage.us-phoenix-1.oraclecloud.com/n/ax6ygfvpvzka/b/open-modeldb-files/o/1x-ITF-SkinDiffDetail-Lite-v1.pth" "$UPSCALE_MODELS_DIR/1x-ITF-SkinDiffDetail-Lite-v1.pth"
-
-    # Download Lotus Depth Estimation Model
-    download_model "https://huggingface.co/Kijai/lotus-comfyui/resolve/main/lotus-depth-d-v-1-1-fp16.safetensors" "$DIFFUSION_MODELS_DIR/lotus-depth-d-v-1-1-fp16.safetensors"
-
-    # Download Stability VAE
-    download_model "https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors" "$VAE_DIR/vae-ft-mse-840000-ema-pruned.safetensors"
 else
-    echo "⏭️  download_ltx2_19b not set — skipping legacy LTX-2 19b model set."
+    echo "⏭️  download_ltx2_19b not set — skipping legacy LTX-2 19b extras."
 fi
 
-# Download additional models
-echo "📥 Starting additional model downloads..."
-
-if [ ! -f "$NETWORK_VOLUME/ComfyUI/models/upscale_models/4xLSDIR.pth" ]; then
-    if [ -f "/4xLSDIR.pth" ]; then
-        mv "/4xLSDIR.pth" "$NETWORK_VOLUME/ComfyUI/models/upscale_models/4xLSDIR.pth"
-        echo "Moved 4xLSDIR.pth to the correct location."
-    else
-        echo "4xLSDIR.pth not found in the root directory."
-    fi
-else
-    echo "4xLSDIR.pth already exists. Skipping."
-fi
-
-echo "Finished downloading models!"
+echo "Finished downloading registry models!"
 
 declare -A MODEL_CATEGORIES=(
     ["$NETWORK_VOLUME/ComfyUI/models/loras"]="$LORAS_IDS_TO_DOWNLOAD"
@@ -397,14 +314,11 @@ echo "Default preview method updated to 'auto'"
 URL="http://127.0.0.1:8188"
 echo "Starting ComfyUI"
 
-# Build ComfyUI command with optional flags
-COMFYUI_CMD="python3 $NETWORK_VOLUME/ComfyUI/main.py --listen --enable-cors-header '*'"
-
-if [ "$USE_EXTRA_MODEL_PATHS" == "true" ]; then
-  COMFYUI_CMD="$COMFYUI_CMD --extra-model-paths-config /comfyui-ltx2/src/extra_model_paths.yaml"
-fi
-
-nohup $COMFYUI_CMD > "$NETWORK_VOLUME/comfyui_${RUNPOD_POD_ID}_nohup.log" 2>&1 &
+# ComfyUI runs from the image (/ComfyUI); models/user/output/input resolve via
+# the symlinks + extra_model_paths.yaml generated above.
+nohup python3 "$COMFYUI_DIR/main.py" --listen --enable-cors-header '*' \
+    $EXTRA_PATHS_FLAG \
+    > "$NETWORK_VOLUME/comfyui_${RUNPOD_POD_ID}_nohup.log" 2>&1 &
 until curl --silent --fail "$URL" --output /dev/null; do
   echo "🔄  ComfyUI Starting Up... You can view the startup logs here: $NETWORK_VOLUME/comfyui_${RUNPOD_POD_ID}_nohup.log"
   sleep 2
