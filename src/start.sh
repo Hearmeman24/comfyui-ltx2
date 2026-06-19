@@ -166,6 +166,15 @@ download_model() {
 # live progress, and skips any model already present (>10 MB).
 #
 # Runtime scripts are copied to / by start_script.sh on every boot.
+
+# Subtle HF_TOKEN sanity check. If a token is set but rejected by HF, the gated
+# IC-LoRAs will silently 401 — warn once here rather than leaving the user to
+# wonder. Unset token is fine (the end-of-boot notice covers that case).
+if [ -n "$HF_TOKEN" ] && \
+   ! curl -sf -H "Authorization: Bearer $HF_TOKEN" https://huggingface.co/api/whoami-v2 >/dev/null 2>&1; then
+    echo "⚠️  HF_TOKEN looks invalid — gated IC-LoRAs may fail to download (see README → Gated IC-LoRAs)."
+fi
+
 echo "📦 Provisioning models from registry..."
 HF_QUEUE_FILE="/tmp/hf_download_queue.tsv"
 python3 /build_manifest.py \
