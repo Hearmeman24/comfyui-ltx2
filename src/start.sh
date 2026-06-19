@@ -329,6 +329,16 @@ fi
 echo "Config file setup complete!"
 echo "Default preview method updated to 'auto'"
 
+# Pin kornia 0.8.2 before launch. ComfyUI-LTXVideo requires kornia unpinned and
+# imports `pad` from kornia.geometry.transform.pyramid; kornia 0.8.3 removed that
+# re-export, so the node fails to import ("cannot import name 'pad'"). 0.8.2 is
+# the last release that exposes it (needs only torch>=2.0.0). Done at boot so the
+# fix lands without an image rebuild; pip is a no-op once 0.8.2 is installed.
+if ! python3 -c "import kornia,sys; sys.exit(0 if kornia.__version__=='0.8.2' else 1)" 2>/dev/null; then
+    echo "🔧 Pinning kornia==0.8.2 for ComfyUI-LTXVideo..."
+    pip install "kornia==0.8.2"
+fi
+
 URL="http://127.0.0.1:8188"
 echo "Starting ComfyUI"
 
