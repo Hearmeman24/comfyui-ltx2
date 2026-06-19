@@ -39,17 +39,22 @@ def select(registry: dict, env: dict, lightweight_fp8: bool) -> dict:
                             (so it ships by default, e.g. the IC-LoRA set).
     - "variant": full|fp8  among variant-tagged entries, keep the fp8 one when
                             lightweight_fp8 else the full one.
+    - "gated": true        HF-gated repo — only queued when HF_TOKEN is set.
+                            Without a token the download would 403, so don't
+                            even attempt it (the end-of-boot notice explains).
     """
     enabled = {k for k, v in env.items() if v == "true"}
-    gated = {
+    has_token = bool((env.get("HF_TOKEN") or "").strip())
+    kept = {
         n: e for n, e in registry.items()
         if ("flag" not in e or e["flag"] in enabled)
         and ("disable_flag" not in e or e["disable_flag"] not in enabled)
+        and (not e.get("gated") or has_token)
     }
     # Variant choice: among variant-tagged entries, keep only fp8 or full.
     want = "fp8" if lightweight_fp8 else "full"
     return {
-        n: e for n, e in gated.items()
+        n: e for n, e in kept.items()
         if not e.get("variant") or e["variant"] == want
     }
 
@@ -112,6 +117,15 @@ def selftest() -> None:
     }
     assert set(select(dreg, {}, False)) == {"keep.safetensors", "ic.safetensors"}
     assert set(select(dreg, {"disable_ic_loras": "true"}, False)) == {"keep.safetensors"}
+
+    # gated: queued only when HF_TOKEN is present
+    greg2 = {
+        "open.safetensors": {"url": "https://h/o", "subdir": "loras"},
+        "gated.safetensors": {"url": "https://h/g", "subdir": "loras", "gated": True},
+    }
+    assert set(select(greg2, {}, False)) == {"open.safetensors"}
+    assert set(select(greg2, {"HF_TOKEN": "hf_x"}, False)) == {"open.safetensors", "gated.safetensors"}
+    assert set(select(greg2, {"HF_TOKEN": "  "}, False)) == {"open.safetensors"}  # blank token ignored
     print("ok")
 
 
