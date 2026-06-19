@@ -32,12 +32,19 @@ MIN_OK_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 def select(registry: dict, env: dict, lightweight_fp8: bool) -> dict:
-    """Filter the registry by flag gating + fp8/full variant choice."""
+    """Filter the registry by flag gating + fp8/full variant choice.
+
+    - "flag": <env>        opt-IN  — kept only when env[flag] == "true".
+    - "disable_flag": <env> opt-OUT — kept unless env[disable_flag] == "true"
+                            (so it ships by default, e.g. the IC-LoRA set).
+    - "variant": full|fp8  among variant-tagged entries, keep the fp8 one when
+                            lightweight_fp8 else the full one.
+    """
     enabled = {k for k, v in env.items() if v == "true"}
-    # Flag gate: drop entries whose flag is not enabled.
     gated = {
         n: e for n, e in registry.items()
-        if "flag" not in e or e["flag"] in enabled
+        if ("flag" not in e or e["flag"] in enabled)
+        and ("disable_flag" not in e or e["disable_flag"] not in enabled)
     }
     # Variant choice: among variant-tagged entries, keep only fp8 or full.
     want = "fp8" if lightweight_fp8 else "full"
@@ -96,6 +103,15 @@ def selftest() -> None:
     on_fp8 = select(greg, {"download_ltx2_19b": "true"}, lightweight_fp8=True)
     assert set(on_fp8) == {"always.safetensors", "gated_fp8.safetensors",
                            "gated_te.safetensors"}, on_fp8
+
+    # disable_flag: opt-out — shipped by default, dropped when the env is "true"
+    dreg = {
+        "keep.safetensors": {"url": "https://h/k", "subdir": "loras"},
+        "ic.safetensors": {"url": "https://h/i", "subdir": "loras",
+                           "disable_flag": "disable_ic_loras"},
+    }
+    assert set(select(dreg, {}, False)) == {"keep.safetensors", "ic.safetensors"}
+    assert set(select(dreg, {"disable_ic_loras": "true"}, False)) == {"keep.safetensors"}
     print("ok")
 
 

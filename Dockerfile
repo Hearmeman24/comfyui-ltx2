@@ -88,6 +88,7 @@ RUN for repo in \
     https://github.com/bash-j/mikey_nodes.git \
     https://github.com/chrisgoringe/cg-use-everywhere.git \
     https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI.git \
+    https://github.com/Lightricks/ComfyUI-LTXVideo.git \
     https://github.com/M1kep/ComfyLiterals.git; \
     do \
         cd /ComfyUI/custom_nodes; \

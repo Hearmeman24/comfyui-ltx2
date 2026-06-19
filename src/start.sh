@@ -324,5 +324,41 @@ until curl --silent --fail "$URL" --output /dev/null; do
   sleep 2
 done
 echo "🚀 ComfyUI is ready"
+
+# Gated IC-LoRA notice. If the user kept the IC-LoRA set enabled but the gated
+# ones didn't land (no HF_TOKEN, or the model licenses weren't accepted), the
+# files are simply absent from models/loras. Surface that clearly and point to
+# the README rather than letting them wonder why a workflow can't find them.
+if [ "${disable_ic_loras:-false}" != "true" ]; then
+    GATED_MISSING=$(python3 - "$PERSIST_ROOT/models" <<'PY'
+import json, os, sys
+root = sys.argv[1]
+try:
+    reg = json.load(open("/models_registry.json"))
+except Exception:
+    print(0); raise SystemExit
+missing = [n for n, e in reg.items()
+           if e.get("gated") and not os.path.isfile(os.path.join(root, e["subdir"], n))]
+print(len(missing))
+for n in missing:
+    print(n)
+PY
+)
+    GATED_COUNT=$(printf '%s\n' "$GATED_MISSING" | head -n1)
+    if [ "${GATED_COUNT:-0}" -gt 0 ] 2>/dev/null; then
+        echo ""
+        echo "⚠️  ${GATED_COUNT} gated IC-LoRA(s) were NOT downloaded:"
+        printf '%s\n' "$GATED_MISSING" | tail -n +2 | sed 's/^/      - /'
+        echo ""
+        echo "    These LTX-2.3 IC-LoRAs are GATED on Hugging Face. To get them you must:"
+        echo "      1. Open each model page and accept its license (links in README.md)."
+        echo "      2. Set the HF_TOKEN env var to a token from that same account."
+        echo "      3. Restart the pod — only the missing files are re-fetched."
+        echo "    Full list, per-model links and details: README.md → 'Gated IC-LoRAs'."
+        echo "    (Or set disable_ic_loras=true to skip the IC-LoRA set entirely.)"
+        echo ""
+    fi
+fi
+
 sleep infinity
 
