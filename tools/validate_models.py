@@ -47,14 +47,17 @@ def _status(url: str, method: str) -> int:
         return r.status
 
 
-def check_url(name_url: tuple[str, str]) -> str | None:
-    name, url = name_url
+def check_url(job: tuple[str, str, bool]) -> str | None:
+    name, url, gated = job
+    # Gated repos (gated: auto on HF) answer 401/403 to unauthenticated CI;
+    # that still confirms the path resolves to a real gated file, so accept it.
+    ok = OK | {401, 403} if gated else OK
     for method in ("HEAD", "GET"):
         try:
-            if _status(url, method) in OK:
+            if _status(url, method) in ok:
                 return None
         except urllib.error.HTTPError as e:
-            if e.code in OK:
+            if e.code in ok:
                 return None
             last = f"HTTP {e.code}"
         except Exception as e:  # noqa: BLE001
@@ -68,8 +71,9 @@ def main() -> int:
         print(f"❌ {e}")
 
     registry = json.loads(REGISTRY.read_text())
-    jobs = [(n, e["url"]) for n, e in registry.items()]
-    print(f"🔎 checking {len(jobs)} registry URLs...")
+    jobs = [(n, e["url"], bool(e.get("gated"))) for n, e in registry.items()]
+    gated_n = sum(1 for *_, g in jobs if g)
+    print(f"🔎 checking {len(jobs)} registry URLs ({gated_n} gated, 401/403 tolerated)...")
     with ThreadPoolExecutor(max_workers=8) as pool:
         url_errors = [r for r in pool.map(check_url, jobs) if r]
     for e in url_errors:
