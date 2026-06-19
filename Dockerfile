@@ -44,6 +44,13 @@ RUN --mount=type=cache,target=/root/.cache/pip \
         jupyter-server jupyter-server-terminals \
         ipykernel jupyterlab_code_formatter
 
+# huggingface_hub (provides hf_hub_download + bundled hf_xet accelerator) is
+# imported by src/hf_download_manager.py. The standalone `hf` CLI is installed
+# separately for manual use / xet acceleration.
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install --upgrade huggingface_hub hf_xet
+RUN curl -LsSf https://hf.co/cli/install.sh | bash
+
 RUN --mount=type=cache,target=/root/.cache/pip \
     /usr/bin/yes | comfy --workspace /ComfyUI install
 
@@ -55,7 +62,6 @@ RUN for repo in \
     https://github.com/kijai/ComfyUI-KJNodes.git \
     https://github.com/rgthree/rgthree-comfy.git \
     https://github.com/JPS-GER/ComfyUI_JPS-Nodes.git \
-    https://github.com/Suzie1/ComfyUI_Comfyroll_CustomNodes.git \
     https://github.com/Jordach/comfy-plasma.git \
     https://github.com/ltdrdata/ComfyUI-Impact-Pack.git \
     https://github.com/ClownsharkBatwing/RES4LYF.git \
@@ -67,10 +73,10 @@ RUN for repo in \
     https://github.com/chflame163/ComfyUI_LayerStyle.git \
     https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git \
     https://github.com/Jonseed/ComfyUI-Detail-Daemon.git \
-    https://github.com/shadowcz007/comfyui-mixlab-nodes.git \
     https://github.com/chflame163/ComfyUI_LayerStyle_Advance.git \
     https://github.com/bash-j/mikey_nodes.git \
     https://github.com/chrisgoringe/cg-use-everywhere.git \
+    https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI.git \
     https://github.com/M1kep/ComfyLiterals.git; \
     do \
         cd /ComfyUI/custom_nodes; \

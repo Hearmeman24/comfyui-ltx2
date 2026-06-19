@@ -1,76 +1,76 @@
 ### Created by [HearmemanAI](https://www.hearmemanai.com)
 
-# LTX-2 ComfyUI Template
+# LTX-2.3 ComfyUI Template
 
-One-click deployment for ComfyUI with LTX-2 audio-video generation, control LoRAs, and optimized workflows.
+One-click deployment for ComfyUI with LTX-2.3 audio-video generation and the LTX Director workflow. The legacy LTX-2 (19b) model set remains available behind an opt-in flag.
 
 ## Features
 
-- **LTX-2 Models**: Full precision or FP8 quantized variants
-- **Control LoRAs**: Canny, depth, pose, detailing, camera movements (dolly/jib)
-- **Upscalers**: Spatial & temporal 2x resolution enhancement
-- **Additional Models**: Lotus depth estimation, Stability VAE
-- **FP8 Lightweight Mode**: Reduced memory with automatic workflow updates
+- **LTX-2.3 (default)**: `ltx-2.3-22b-dev-fp8` checkpoint + `gemma_3_12B_it_fp4_mixed` text encoder, audio/video/tiny VAEs, the distilled dynamic LoRA, text projection, and the v1.1 spatial upscaler
+- **LTX Director workflow**: bundled and ready to run out-of-the-box
+- **Registry-driven downloads**: models live in `src/models_registry.json` and are fetched in parallel via Hugging Face (`hf_hub_download` + `hf_xet`), with live progress and resume-safe skip of files already on disk
+- **Legacy LTX-2 19b set**: control/camera LoRAs, upscalers, depth model and the 19b workflows — opt-in via `download_ltx2_19b=true`
 
 ## Environment Variables
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `lightweight_fp8` | `false` | Use FP8 quantized model for lower VRAM |
+| `download_ltx2_19b` | `false` | Also download the legacy LTX-2 19b model set + workflows |
+| `lightweight_fp8` | `false` | (19b only) Use the FP8 19b checkpoint and rewrite the 19b workflows to match |
 | `civitai_token` | - | CivitAI API token for downloads |
 | `LORAS_IDS_TO_DOWNLOAD` | - | Comma-separated CivitAI LoRA IDs |
-| `CHECKPOINT_IDS_TO_DOWNLOAD` | - | Comma-separated checkpoint IDs |
+| `SDXL_MODEL_IDS_TO_DOWNLOAD` | - | Comma-separated CivitAI checkpoint IDs |
 
-**Example:**
+**Example (also pull the legacy 19b set):**
 ```bash
+download_ltx2_19b=true
 lightweight_fp8=true
-civitai_token=your_token_here
-LORAS_IDS_TO_DOWNLOAD=123456,789012
-CHECKPOINT_IDS_TO_DOWNLOAD=111222
 ```
 
 ## Setup
 
-1. **Configure** environment variables (optional)
+1. **Configure** environment variables (optional — defaults ship LTX-2.3)
 2. **Deploy** - Initial setup takes 5-30 minutes
-3. **Access** ComfyUI at provided URL with pre-configured workflows
+3. **Access** ComfyUI at the provided URL with the Director workflow pre-loaded
+
+## Included Models (LTX-2.3, default)
+
+| File | Location |
+|------|----------|
+| `ltx-2.3-22b-dev-fp8.safetensors` | `checkpoints/` |
+| `gemma_3_12B_it_fp4_mixed.safetensors` | `text_encoders/` |
+| `ltx-2.3_text_projection_bf16.safetensors` | `text_encoders/` |
+| `ltx-2.3-22b-distilled-lora-dynamic_fro09_avg_rank_105_bf16.safetensors` | `loras/ltx2/` |
+| `LTX23_video_vae_bf16.safetensors` | `vae/` |
+| `LTX23_audio_vae_bf16.safetensors` | `vae/` |
+| `taeltx2_3.safetensors` | `vae/` |
+| `ltx-2.3-spatial-upscaler-x2-1.1.safetensors` | `latent_upscale_models/` |
+
+Model links are sourced from [awesome-ltx2](https://github.com/wildminder/awesome-ltx2). To add or change a model, edit `src/models_registry.json` — CI (`tools/validate_models.py`) checks every URL is reachable on each push.
+
+## Pre-configured Workflows
+
+- **LTX Director Example Workflow (Fixed).json** — the LTX-2.3 Director flow (default)
+- `workflows/legacy_19b/` — the LTX-2 19b workflows (T2V, I2V, canny, depth), deployed only when `download_ltx2_19b=true`
 
 ## CivitAI Token
 
 1. Log into [CivitAI](https://civitai.com/)
 2. Go to **Manage Account** → **API Keys**
-3. Create new key and use in `civitai_token` variable
-
-## Included Models
-
-- LTX-2 19B (full or FP8)
-- Gemma 3 12B text encoder
-- Distilled LoRA (384 resolution)
-- Image control: Canny, depth, pose, detailing
-- Camera control: Dolly (4 directions), jib (up/down), static
-- Lotus depth, Stability VAE, ITF upscaler
-
-## Pre-configured Workflows
-
-- **LTX2_T2V.json** - Text-to-video
-- **LTX2_I2V.json** - Image-to-video
-- **LTX2_canny_to_video.json** - Edge-guided
-- **LTX2_depth_to_video.json** - Depth-guided
+3. Create a new key and set it in the `civitai_token` variable
 
 ## Tips
 
-- Use `lightweight_fp8=true` on GPUs with limited VRAM
 - Write detailed chronological prompts (max 200 words)
-- Combine multiple control LoRAs for complex scenes
 - Models download in background—ComfyUI starts immediately
 
 ## Troubleshooting
 
-**Slow startup?** Check `/workspace/comfyui_*.nohup.log`
-**Memory issues?** Enable `lightweight_fp8=true`
-**FP8 workflows?** Set `lightweight_fp8=true` before deploy
+**Slow startup?** Check `/workspace/comfyui_*_nohup.log`
+**Missing models in a 19b workflow?** Set `download_ltx2_19b=true` before deploy
 
 ## Links
 
-- [LTX-2 GitHub](https://github.com/Lightricks/LTX-2)
-- [LTX-2 HuggingFace](https://huggingface.co/Lightricks/LTX-2)
+- [LTX-2.3 HuggingFace](https://huggingface.co/Lightricks/LTX-2.3)
+- [awesome-ltx2 model index](https://github.com/wildminder/awesome-ltx2)
+- [WhatDreamsCost nodes](https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI)

@@ -187,46 +187,71 @@ download_model() {
 }
 
 
-# Download LTX-2 Main Model
-if [ "$lightweight_fp8" = "true" ]; then
-    download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev-fp8.safetensors" "$CHECKPOINTS_DIR/ltx-2-19b-dev-fp8.safetensors"
+# ===================== LTX-2.3 model set (default) =====================
+# Registry-driven Hugging Face downloads via hf_download_manager (mirrors the
+# comfyui-wan template). Source of truth: src/models_registry.json. The manager
+# resolves sizes, runs a 3-way pool with hf_xet acceleration, and prints live
+# progress. build_manifest.py skips any model already present (>10 MB).
+echo "📦 Provisioning LTX-2.3 models from registry..."
+REPO_SRC="/comfyui-ltx2/src"
+HF_QUEUE_FILE="/tmp/hf_download_queue.tsv"
+python3 "$REPO_SRC/build_manifest.py" \
+    --registry "$REPO_SRC/models_registry.json" \
+    --models-root "$COMFYUI_DIR/models" \
+    --manifest "$HF_QUEUE_FILE"
+python3 "$REPO_SRC/hf_download_manager.py" "$HF_QUEUE_FILE"
+echo "✅ LTX-2.3 models ready"
+
+# ============== LTX-2 (19b) legacy set — opt-in via env var ==============
+# Set download_ltx2_19b=true to also fetch the older LTX-2 19b dev model,
+# its control/camera LoRAs, upscalers, depth model and the 19b example
+# workflows (workflows/legacy_19b/). Off by default — the template ships 2.3.
+if [ "${download_ltx2_19b:-false}" = "true" ]; then
+    echo "📦 download_ltx2_19b=true — fetching legacy LTX-2 19b model set..."
+
+    # Download LTX-2 Main Model
+    if [ "$lightweight_fp8" = "true" ]; then
+        download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev-fp8.safetensors" "$CHECKPOINTS_DIR/ltx-2-19b-dev-fp8.safetensors"
+    else
+        download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev.safetensors" "$CHECKPOINTS_DIR/ltx-2-19b-dev.safetensors"
+    fi
+
+    # Download LTX-2 Text Encoder (Gemma)
+    download_model "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors" "$TEXT_ENCODERS_DIR/gemma_3_12B_it.safetensors"
+
+    # Download LTX-2 Upscalers
+    download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors" "$LATENT_UPSCALE_MODELS_DIR/ltx-2-spatial-upscaler-x2-1.0.safetensors"
+    download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-temporal-upscaler-x2-1.0.safetensors" "$LATENT_UPSCALE_MODELS_DIR/ltx-2-temporal-upscaler-x2-1.0.safetensors"
+
+    # Download LTX-2 Distilled LoRA
+    download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-lora-384.safetensors" "$LORAS_DIR/ltx-2-19b-distilled-lora-384.safetensors"
+
+    # Download LTX-2 Control LoRAs - Image Control
+    download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Canny-Control/resolve/main/ltx-2-19b-ic-lora-canny-control.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-canny-control.safetensors"
+    download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Depth-Control/resolve/main/ltx-2-19b-ic-lora-depth-control.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-depth-control.safetensors"
+    download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Detailer/resolve/main/ltx-2-19b-ic-lora-detailer.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-detailer.safetensors"
+    download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Pose-Control/resolve/main/ltx-2-19b-ic-lora-pose-control.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-pose-control.safetensors"
+
+    # Download LTX-2 Control LoRAs - Camera Control
+    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-In/resolve/main/ltx-2-19b-lora-camera-control-dolly-in.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-in.safetensors"
+    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Left/resolve/main/ltx-2-19b-lora-camera-control-dolly-left.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-left.safetensors"
+    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Out/resolve/main/ltx-2-19b-lora-camera-control-dolly-out.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-out.safetensors"
+    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Right/resolve/main/ltx-2-19b-lora-camera-control-dolly-right.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-right.safetensors"
+    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Jib-Down/resolve/main/ltx-2-19b-lora-camera-control-jib-down.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-jib-down.safetensors"
+    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Jib-Up/resolve/main/ltx-2-19b-lora-camera-control-jib-up.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-jib-up.safetensors"
+    download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Static/resolve/main/ltx-2-19b-lora-camera-control-static.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-static.safetensors"
+
+    # Download general-purpose upscaler
+    download_model "https://objectstorage.us-phoenix-1.oraclecloud.com/n/ax6ygfvpvzka/b/open-modeldb-files/o/1x-ITF-SkinDiffDetail-Lite-v1.pth" "$UPSCALE_MODELS_DIR/1x-ITF-SkinDiffDetail-Lite-v1.pth"
+
+    # Download Lotus Depth Estimation Model
+    download_model "https://huggingface.co/Kijai/lotus-comfyui/resolve/main/lotus-depth-d-v-1-1-fp16.safetensors" "$DIFFUSION_MODELS_DIR/lotus-depth-d-v-1-1-fp16.safetensors"
+
+    # Download Stability VAE
+    download_model "https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors" "$VAE_DIR/vae-ft-mse-840000-ema-pruned.safetensors"
 else
-    download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-dev.safetensors" "$CHECKPOINTS_DIR/ltx-2-19b-dev.safetensors"
+    echo "⏭️  download_ltx2_19b not set — skipping legacy LTX-2 19b model set."
 fi
-
-# Download LTX-2 Text Encoder (Gemma)
-download_model "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/text_encoders/gemma_3_12B_it.safetensors" "$TEXT_ENCODERS_DIR/gemma_3_12B_it.safetensors"
-
-# Download LTX-2 Upscalers
-download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-spatial-upscaler-x2-1.0.safetensors" "$LATENT_UPSCALE_MODELS_DIR/ltx-2-spatial-upscaler-x2-1.0.safetensors"
-download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-temporal-upscaler-x2-1.0.safetensors" "$LATENT_UPSCALE_MODELS_DIR/ltx-2-temporal-upscaler-x2-1.0.safetensors"
-
-# Download LTX-2 Distilled LoRA
-download_model "https://huggingface.co/Lightricks/LTX-2/resolve/main/ltx-2-19b-distilled-lora-384.safetensors" "$LORAS_DIR/ltx-2-19b-distilled-lora-384.safetensors"
-
-# Download LTX-2 Control LoRAs - Image Control
-download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Canny-Control/resolve/main/ltx-2-19b-ic-lora-canny-control.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-canny-control.safetensors"
-download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Depth-Control/resolve/main/ltx-2-19b-ic-lora-depth-control.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-depth-control.safetensors"
-download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Detailer/resolve/main/ltx-2-19b-ic-lora-detailer.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-detailer.safetensors"
-download_model "https://huggingface.co/Lightricks/LTX-2-19b-IC-LoRA-Pose-Control/resolve/main/ltx-2-19b-ic-lora-pose-control.safetensors" "$LORAS_DIR/ltx-2-19b-ic-lora-pose-control.safetensors"
-
-# Download LTX-2 Control LoRAs - Camera Control
-download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-In/resolve/main/ltx-2-19b-lora-camera-control-dolly-in.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-in.safetensors"
-download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Left/resolve/main/ltx-2-19b-lora-camera-control-dolly-left.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-left.safetensors"
-download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Out/resolve/main/ltx-2-19b-lora-camera-control-dolly-out.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-out.safetensors"
-download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Dolly-Right/resolve/main/ltx-2-19b-lora-camera-control-dolly-right.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-dolly-right.safetensors"
-download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Jib-Down/resolve/main/ltx-2-19b-lora-camera-control-jib-down.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-jib-down.safetensors"
-download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Jib-Up/resolve/main/ltx-2-19b-lora-camera-control-jib-up.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-jib-up.safetensors"
-download_model "https://huggingface.co/Lightricks/LTX-2-19b-LoRA-Camera-Control-Static/resolve/main/ltx-2-19b-lora-camera-control-static.safetensors" "$LORAS_DIR/ltx-2-19b-lora-camera-control-static.safetensors"
-
-# Download general-purpose upscaler
-download_model "https://objectstorage.us-phoenix-1.oraclecloud.com/n/ax6ygfvpvzka/b/open-modeldb-files/o/1x-ITF-SkinDiffDetail-Lite-v1.pth" "$UPSCALE_MODELS_DIR/1x-ITF-SkinDiffDetail-Lite-v1.pth"
-
-# Download Lotus Depth Estimation Model
-download_model "https://huggingface.co/Kijai/lotus-comfyui/resolve/main/lotus-depth-d-v-1-1-fp16.safetensors" "$DIFFUSION_MODELS_DIR/lotus-depth-d-v-1-1-fp16.safetensors"
-
-# Download Stability VAE
-download_model "https://huggingface.co/stabilityai/sd-vae-ft-mse-original/resolve/main/vae-ft-mse-840000-ema-pruned.safetensors" "$VAE_DIR/vae-ft-mse-840000-ema-pruned.safetensors"
 
 # Download additional models
 echo "📥 Starting additional model downloads..."
@@ -287,13 +312,13 @@ SOURCE_DIR="/comfyui-ltx2/workflows"
 # Ensure destination directory exists
 mkdir -p "$WORKFLOW_DIR"
 
-# Loop over each file in the source directory
-for file in "$SOURCE_DIR"/*; do
-    # Skip if it's not a file
-    [[ -f "$file" ]] || continue
-
-    dest_file="$WORKFLOW_DIR/$(basename "$file")"
-
+# Loop over each file in the source directory. Top-level holds the LTX-2.3
+# workflows; the legacy 19b workflows live in legacy_19b/ and are only copied
+# when download_ltx2_19b=true (the loop skips subdirectories).
+copy_workflow() {
+    local file="$1"
+    [[ -f "$file" ]] || return
+    local dest_file="$WORKFLOW_DIR/$(basename "$file")"
     if [[ -e "$dest_file" ]]; then
         echo "File already exists in destination. Deleting: $file"
         rm -f "$file"
@@ -301,10 +326,22 @@ for file in "$SOURCE_DIR"/*; do
         echo "Moving: $file to $WORKFLOW_DIR"
         mv "$file" "$WORKFLOW_DIR"
     fi
+}
+
+for file in "$SOURCE_DIR"/*; do
+    copy_workflow "$file"
 done
 
-# Update workflow JSON files if lightweight_fp8 is enabled
-if [ "$lightweight_fp8" = "true" ]; then
+# Legacy 19b workflows ship only when the 19b model set was downloaded.
+if [ "${download_ltx2_19b:-false}" = "true" ]; then
+    for file in "$SOURCE_DIR"/legacy_19b/*; do
+        copy_workflow "$file"
+    done
+fi
+
+# Rewrite legacy 19b workflows to the FP8 model name (19b-only; the 2.3 set
+# already ships the fp8 dev checkpoint by default, so no rewrite is needed).
+if [ "${download_ltx2_19b:-false}" = "true" ] && [ "$lightweight_fp8" = "true" ]; then
     echo "🔧 Updating workflow files for FP8 model..."
     for json_file in "$WORKFLOW_DIR"/*.json; do
         if [ -f "$json_file" ]; then

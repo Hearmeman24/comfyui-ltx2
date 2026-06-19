@@ -30,6 +30,15 @@ commands:
               -d "{\"message\": \"<< parameters.message >>\", \"source\": \"circleci\"}"
 
 jobs:
+  validate_models:
+    docker:
+      - image: cimg/python:3.11
+    steps:
+      - checkout
+      - run:
+          name: Validate model registry (URL reachability + workflow JSON)
+          command: python3 tools/validate_models.py
+
   build_and_push:
     executor: docker-dind
     steps:
@@ -79,7 +88,15 @@ workflows:
   version: 2
   build_on_tag:
     jobs:
+      # Runs on every branch push and on version tags — catches dead registry
+      # URLs and broken workflow JSON before a build is ever attempted.
+      - validate_models:
+          filters:
+            tags:
+              only: /.*/
       - build_and_push:
+          requires:
+            - validate_models
           context:
             - docker-hub
             - flowbot-webhook-token
