@@ -181,7 +181,11 @@ python3 /build_manifest.py \
     --registry /models_registry.json \
     --models-root "$PERSIST_ROOT/models" \
     --manifest "$HF_QUEUE_FILE"
-python3 /hf_download_manager.py "$HF_QUEUE_FILE"
+# The manager self-guards (stall/deadline watchdog), but wrap in `timeout` as a
+# hard backstop so a wedged download can never block the boot. Either way we
+# fall through and start ComfyUI — missing models surface in the notice below.
+timeout --signal=TERM 4000 python3 /hf_download_manager.py "$HF_QUEUE_FILE" \
+    || echo "⚠️  Model download phase ended early (some models may be missing) — continuing boot."
 echo "✅ Registry models ready"
 
 # Non-HF legacy 19b extra: the general-purpose skin upscaler is Oracle-hosted,

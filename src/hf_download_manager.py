@@ -16,10 +16,17 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from huggingface_hub import HfFileSystem, hf_hub_download
+# Bound per-request HTTP waits so a stuck/gated transfer raises instead of
+# blocking forever (set before huggingface_hub reads it at import time).
+os.environ.setdefault("HF_HUB_DOWNLOAD_TIMEOUT", "30")
+os.environ.setdefault("HF_HUB_ETAG_TIMEOUT", "15")
+
+from huggingface_hub import HfFileSystem, hf_hub_download  # noqa: E402
 
 POOL_SIZE = 3
 SNAPSHOT_INTERVAL = 10  # seconds
+STALL_SECS = 300        # abandon if no global byte progress for this long
+DEADLINE_SECS = 3600    # absolute backstop for the whole download phase
 
 # https://huggingface.co/<repo_id>/resolve/<revision>/<file_in_repo>[?...]
 HF_URL_RE = re.compile(
@@ -205,18 +212,51 @@ def main() -> int:
     started_at = time.time()
     prev_bytes: dict = {}
 
-    with ThreadPoolExecutor(max_workers=POOL_SIZE) as pool:
-        futures = [pool.submit(run_job, j, lock) for j in jobs]
+    # Watchdog: a single gated/hung transfer (e.g. an unauthorized 403 or a xet
+    # stream stuck at 0 B/s) must never block the boot. If no global progress
+    # happens for STALL_SECS, or the whole phase exceeds DEADLINE_SECS, abandon
+    # the remaining jobs and hard-exit so ComfyUI still starts. hf_hub_download
+    # threads can't be cancelled once blocked, so os._exit bypasses the pool
+    # join rather than hanging on a stuck thread.
+    last_finished, last_active_bytes, last_progress_at = 0, 0, time.time()
+
+    pool = ThreadPoolExecutor(max_workers=POOL_SIZE)
+    futures = [pool.submit(run_job, j, lock) for j in jobs]
+    try:
         while True:
             time.sleep(SNAPSHOT_INTERVAL)
             still_running = snapshot(jobs, started_at, lock, prev_bytes)
             if not still_running and all(f.done() for f in futures):
                 break
 
+            now = time.time()
+            with lock:
+                finished = sum(1 for j in jobs if j.status in ("done", "failed"))
+                active_bytes = sum(stage_bytes(j) for j in jobs if j.status == "active")
+            if finished > last_finished or active_bytes > last_active_bytes:
+                last_finished, last_active_bytes, last_progress_at = finished, active_bytes, now
+
+            stalled = (now - last_progress_at) > STALL_SECS
+            expired = (now - started_at) > DEADLINE_SECS
+            if stalled or expired:
+                with lock:
+                    stuck = [j for j in jobs if j.status in ("active", "queued")]
+                    for j in stuck:
+                        j.status = "failed"
+                        j.error = j.error or ("stalled — no progress" if stalled else "deadline exceeded")
+                reason = "no progress for %s" % fmt_dur(STALL_SECS) if stalled else "deadline exceeded"
+                print(f"[hf-manager] {reason}: abandoning {len(stuck)} download(s) and continuing boot",
+                      flush=True)
+                snapshot(jobs, started_at, lock, prev_bytes)
+                sys.stdout.flush()
+                os._exit(1)  # leave stuck download threads behind; boot proceeds
+    finally:
+        pool.shutdown(wait=False)
+
     snapshot(jobs, started_at, lock, prev_bytes)
     failed = [j for j in jobs if j.status == "failed"]
     if failed:
-        print(f"[hf-manager] {len(failed)} failures", flush=True)
+        print(f"[hf-manager] {len(failed)} failures (boot continues; see notice + README)", flush=True)
         return 1
     print(f"[hf-manager] all {len(jobs)} downloads complete in {fmt_dur(time.time() - started_at)}", flush=True)
     return 0
