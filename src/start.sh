@@ -196,10 +196,28 @@ download_count=0
 
 # Ensure directories exist and schedule downloads in background
 for TARGET_DIR in "${!MODEL_CATEGORIES[@]}"; do
+    MODEL_IDS_STRING="${MODEL_CATEGORIES[$TARGET_DIR]}"
+
+    # Skip when the var is unset or still the RunPod default placeholder —
+    # otherwise we try to download a model literally named "replace_with_ids".
+    if [[ -z "$MODEL_IDS_STRING" || "$MODEL_IDS_STRING" == "replace_with_ids" ]]; then
+        echo "⏭️  No CivitAI IDs set for $TARGET_DIR — skipping."
+        continue
+    fi
+
+    # IDs are set but the token is missing/placeholder: skip rather than fire a
+    # doomed download with token=token_here.
+    if [[ -z "$civitai_token" || "$civitai_token" == "token_here" ]]; then
+        echo "⚠️  CivitAI IDs set for $TARGET_DIR but civitai_token is not configured — skipping."
+        continue
+    fi
+
     mkdir -p "$TARGET_DIR"
-    IFS=',' read -ra MODEL_IDS <<< "${MODEL_CATEGORIES[$TARGET_DIR]}"
+    IFS=',' read -ra MODEL_IDS <<< "$MODEL_IDS_STRING"
 
     for MODEL_ID in "${MODEL_IDS[@]}"; do
+        MODEL_ID="$(echo "$MODEL_ID" | xargs)"  # trim whitespace
+        [[ -z "$MODEL_ID" || "$MODEL_ID" == "replace_with_ids" ]] && continue
         sleep 6
         echo "🚀 Scheduling download: $MODEL_ID to $TARGET_DIR"
         (cd "$TARGET_DIR" && download_with_aria.py -m "$MODEL_ID") &
