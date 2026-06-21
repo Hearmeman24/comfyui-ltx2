@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Pre-push lint: fast offline registry/workflow validation.
+# JSON validity + workflow→registry coverage. Skips network reachability
+# (CI runs the full check). Enable once with:  git config core.hooksPath .githooks
+set -euo pipefail
+REPO="$(git rev-parse --show-toplevel)"
+exec python3 "$REPO/tools/validate_models.py" --offline

@@ -84,6 +84,22 @@ if [ "$NETWORK_VOLUME" != "/" ]; then
     done
 fi
 
+# Pull the latest LTX Director node on every boot so the image picks up
+# upstream fixes without a rebuild. Best-effort: a failed pull (offline, dirty
+# tree) must never block startup. Reinstall requirements only if the pull
+# actually changed something.
+DIRECTOR_NODE_DIR="$CUSTOM_NODES_DIR/WhatDreamsCost-ComfyUI"
+if [ -d "$DIRECTOR_NODE_DIR/.git" ]; then
+    echo "Updating LTX Director node (git pull)..."
+    before=$(git -C "$DIRECTOR_NODE_DIR" rev-parse HEAD 2>/dev/null)
+    git -C "$DIRECTOR_NODE_DIR" pull --ff-only 2>/dev/null || echo "⚠️  LTX Director git pull failed — keeping baked version."
+    after=$(git -C "$DIRECTOR_NODE_DIR" rev-parse HEAD 2>/dev/null)
+    if [ "$before" != "$after" ] && [ -f "$DIRECTOR_NODE_DIR/requirements.txt" ]; then
+        echo "LTX Director updated — reinstalling its requirements..."
+        pip install -r "$DIRECTOR_NODE_DIR/requirements.txt" || true
+    fi
+fi
+
 # Generate extra_model_paths.yaml from the live $PERSIST_ROOT so paths always
 # match the actual network volume (not a baked-in /workspace assumption). Skip
 # the file + flag when there's no real persistent volume — PERSIST_ROOT would
