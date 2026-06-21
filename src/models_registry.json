@@ -211,5 +211,14 @@
     "subdir": "loras",
     "disable_flag": "disable_ic_loras",
     "gated": true
+  },
+  "edit_anything_30k_v0.1_motion_transfer_r256.safetensors": {
+    "url": "https://huggingface.co/Alissonerdx/EditAnything/resolve/main/edit_anything_30k_v0.1_motion_transfer_r256.safetensors",
+    "subdir": "loras",
+    "disable_flag": "disable_ic_loras"
+  },
+  "ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors": {
+    "url": "https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors",
+    "subdir": "diffusion_models"
   }
 }

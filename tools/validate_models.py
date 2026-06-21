@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
-"""CI validator for the LTX-2.3 model registry.
+"""CI / pre-push validator for the LTX-2.3 model registry.
 
-Two checks, both fatal on failure:
+Offline checks (always run; used by the pre-push hook):
   1. Workflow JSON validity — every workflows/**/*.json must parse.
-  2. Registry reachability — every URL in src/models_registry.json must
+  2. Coverage — every .safetensors a top-level workflows/*.json references
+     must exist as a key in src/models_registry.json. Catches a workflow
+     pointing at a model nothing provisions (red node at runtime).
+
+Network check (skipped with --offline):
+  3. Registry reachability — every URL in src/models_registry.json must
      answer 200/301/302 to a HEAD (falls back to a 1-byte ranged GET for
      hosts that reject HEAD).
 
-Coverage (every workflow-referenced model is provisioned) is deliberately
-NOT enforced: the legacy LTX-2 19b workflows reference models fetched by the
-gated bash path in start.sh, not the registry, so a coverage check here is
-pure noise. Reachability is the signal that actually prevents broken builds.
+Coverage scopes to top-level workflows only. The legacy LTX-2 19b workflows
+in workflows/legacy_19b/ reference models fetched by the gated bash path in
+start.sh (not the registry), so enforcing coverage there is pure noise.
 
 Stdlib only — no pip install needed in CI.
 """
@@ -36,6 +40,29 @@ def check_workflows() -> list[str]:
             json.loads(wf.read_text())
         except Exception as e:
             errors.append(f"invalid JSON: {wf.relative_to(REPO)}: {e}")
+    return errors
+
+
+def _workflow_model_refs(wf_json: dict) -> set[str]:
+    refs = set()
+    for node in wf_json.get("nodes", []):
+        for w in (node.get("widgets_values") or []):
+            if isinstance(w, str) and w.endswith(".safetensors"):
+                refs.add(w)
+    return refs
+
+
+def check_coverage(registry: dict) -> list[str]:
+    # Top-level workflows/*.json only — legacy_19b/ is bash-provisioned (see module docstring).
+    errors = []
+    for wf in sorted(WORKFLOWS.glob("*.json")):
+        try:
+            data = json.loads(wf.read_text())
+        except Exception:
+            continue  # invalid JSON already reported by check_workflows
+        for model in sorted(_workflow_model_refs(data)):
+            if model not in registry:
+                errors.append(f"{wf.relative_to(REPO)} references '{model}' — not in models_registry.json")
     return errors
 
 
@@ -66,24 +93,32 @@ def check_url(job: tuple[str, str, bool]) -> str | None:
 
 
 def main() -> int:
+    offline = "--offline" in sys.argv[1:]
+    registry = json.loads(REGISTRY.read_text())
+
     wf_errors = check_workflows()
-    for e in wf_errors:
+    cov_errors = check_coverage(registry)
+    for e in wf_errors + cov_errors:
         print(f"❌ {e}")
 
-    registry = json.loads(REGISTRY.read_text())
-    jobs = [(n, e["url"], bool(e.get("gated"))) for n, e in registry.items()]
-    gated_n = sum(1 for *_, g in jobs if g)
-    print(f"🔎 checking {len(jobs)} registry URLs ({gated_n} gated, 401/403 tolerated)...")
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        url_errors = [r for r in pool.map(check_url, jobs) if r]
-    for e in url_errors:
-        print(f"❌ unreachable: {e}")
+    url_errors = []
+    if offline:
+        print("⏭️  --offline: skipping registry URL reachability check.")
+    else:
+        jobs = [(n, e["url"], bool(e.get("gated"))) for n, e in registry.items()]
+        gated_n = sum(1 for *_, g in jobs if g)
+        print(f"🔎 checking {len(jobs)} registry URLs ({gated_n} gated, 401/403 tolerated)...")
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            url_errors = [r for r in pool.map(check_url, jobs) if r]
+        for e in url_errors:
+            print(f"❌ unreachable: {e}")
 
-    total = len(wf_errors) + len(url_errors)
+    total = len(wf_errors) + len(cov_errors) + len(url_errors)
     if total:
         print(f"\n💥 {total} problem(s) found")
         return 1
-    print(f"✅ {len(jobs)} URLs reachable, all workflows valid")
+    reach = "skipped" if offline else f"{len(registry)} URLs reachable"
+    print(f"✅ all workflows valid, every referenced model in registry, {reach}")
     return 0
 
 
