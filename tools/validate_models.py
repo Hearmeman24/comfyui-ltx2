@@ -61,7 +61,10 @@ def check_coverage(registry: dict) -> list[str]:
         except Exception:
             continue  # invalid JSON already reported by check_workflows
         for model in sorted(_workflow_model_refs(data)):
-            if model not in registry:
+            # Registry keys are basenames; a model in a subdir (e.g. loras/ltx2)
+            # is referenced in the workflow with its subfolder prefix
+            # ("ltx2/foo.safetensors"), so match on basename.
+            if Path(model).name not in registry:
                 errors.append(f"{wf.relative_to(REPO)} references '{model}' — not in models_registry.json")
     return errors
 
