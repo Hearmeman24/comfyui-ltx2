@@ -215,6 +215,28 @@ fi
 
 echo "Finished downloading registry models!"
 
+# ===================== Face-ID (BFSNodes node + LoRA) =====================
+# The Best-Face-ID LoRA needs BFSNodes' "LTX Identity Transfer" node (overlap +
+# source-phase reference conditioning) — the LoRA weights alone don't preserve
+# identity. Both are provisioned at boot (not baked into the image) so they land
+# on the current image without a rebuild. Best-effort: neither must block boot.
+BFS_NODE_DIR="$CUSTOM_NODES_DIR/ComfyUI-BFSNodes"
+if [ ! -d "$BFS_NODE_DIR/.git" ]; then
+    echo "Cloning ComfyUI-BFSNodes..."
+    if git clone https://github.com/alisson-anjos/ComfyUI-BFSNodes.git "$BFS_NODE_DIR"; then
+        [ -f "$BFS_NODE_DIR/requirements.txt" ] && pip install -r "$BFS_NODE_DIR/requirements.txt" || true
+    else
+        echo "⚠️  ComfyUI-BFSNodes clone failed — Face-ID Identity Transfer node unavailable."
+    fi
+else
+    echo "ComfyUI-BFSNodes already present."
+fi
+
+# Public HF resolve URL, so a direct aria2c fetch (not the HF registry/xet path).
+# Backgrounded via download_model; the aria2c wait loop below blocks until done.
+download_model "https://huggingface.co/Alissonerdx/LTX-Best-Face-ID/resolve/main/Best_FaceID_v1.0_LoRA.safetensors" \
+    "$LORAS_DIR/Best_FaceID_v1.0_LoRA.safetensors"
+
 declare -A MODEL_CATEGORIES=(
     ["$NETWORK_VOLUME/ComfyUI/models/loras"]="$LORAS_IDS_TO_DOWNLOAD"
     ["$NETWORK_VOLUME/ComfyUI/models/checkpoints"]="$SDXL_MODEL_IDS_TO_DOWNLOAD"

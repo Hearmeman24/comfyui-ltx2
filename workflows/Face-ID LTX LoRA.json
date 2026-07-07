@@ -1,0 +1,883 @@
+{
+  "5": {
+    "inputs": {
+      "expression": "((a * b) // 8) * 8 + 1",
+      "variables.a": [
+        "31",
+        0
+      ],
+      "variables.b": [
+        "47",
+        0
+      ]
+    },
+    "class_type": "SimpleCalculatorKJ",
+    "_meta": {
+      "title": "Total Frames"
+    }
+  },
+  "8": {
+    "inputs": {
+      "vae_name": "LTX23_video_vae_bf16.safetensors",
+      "device": "main_device",
+      "weight_dtype": "bf16"
+    },
+    "class_type": "VAELoaderKJ",
+    "_meta": {
+      "title": "VAELoader KJ"
+    }
+  },
+  "12": {
+    "inputs": {
+      "text": [
+        "102",
+        0
+      ],
+      "clip": [
+        "78",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Manual Prompt"
+    }
+  },
+  "26": {
+    "inputs": {
+      "vae_name": "LTX23_audio_vae_bf16.safetensors",
+      "device": "main_device",
+      "weight_dtype": "bf16"
+    },
+    "class_type": "VAELoaderKJ",
+    "_meta": {
+      "title": "VAELoader KJ"
+    }
+  },
+  "27": {
+    "inputs": {
+      "model_name": "ltx-2.3-spatial-upscaler-x2-1.1.safetensors"
+    },
+    "class_type": "LatentUpscaleModelLoader",
+    "_meta": {
+      "title": "Load Latent Upscale Model"
+    }
+  },
+  "31": {
+    "inputs": {
+      "value": 5
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "Duration (Seconds)"
+    }
+  },
+  "33": {
+    "inputs": {
+      "value": 1280
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "Base Resolution (Largest Size)"
+    }
+  },
+  "34": {
+    "inputs": {
+      "positive": [
+        "130",
+        1
+      ],
+      "negative": [
+        "130",
+        2
+      ],
+      "latent": [
+        "55",
+        0
+      ]
+    },
+    "class_type": "LTXVCropGuides",
+    "_meta": {
+      "title": "LTXVCropGuides"
+    }
+  },
+  "35": {
+    "inputs": {
+      "text": "pc game, console game, video game, cartoon, childish, ugly, artifacts, low resolution, blurry, jagged edges",
+      "clip": [
+        "78",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "CLIP Text Encode (Prompt)"
+    }
+  },
+  "40": {
+    "inputs": {
+      "text": [
+        "106",
+        0
+      ],
+      "clip": [
+        "78",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Automatic Prompt"
+    }
+  },
+  "43": {
+    "inputs": {
+      "vae_name": "taeltx2_3.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "47": {
+    "inputs": {
+      "value": 24
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "FPS"
+    }
+  },
+  "50": {
+    "inputs": {
+      "noise_seed": 965674031305647
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "55": {
+    "inputs": {
+      "av_latent": [
+        "91",
+        0
+      ]
+    },
+    "class_type": "LTXVSeparateAVLatent",
+    "_meta": {
+      "title": "LTXVSeparateAVLatent"
+    }
+  },
+  "58": {
+    "inputs": {
+      "sampler_name": "euler_ancestral"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "65": {
+    "inputs": {
+      "samples": [
+        "34",
+        2
+      ],
+      "vae": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "66": {
+    "inputs": {
+      "scheduler": "linear_quadratic",
+      "steps": 8,
+      "denoise": 1,
+      "model": [
+        "130",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "BasicScheduler"
+    }
+  },
+  "68": {
+    "inputs": {
+      "sigmas": "1.0, 0.995, 0.99, 0.9875, 0.975, 0.65, 0.28, 0.07, 0.0"
+    },
+    "class_type": "ManualSigmas",
+    "_meta": {
+      "title": "ManualSigmas"
+    }
+  },
+  "72": {
+    "inputs": {
+      "string_a": "You will receive two inputs:\n\n1. A reference face image showing the person whose appearance must be preserved.\n2. An original `ref_t2v` video caption describing the scene, action, environment, camera framing, movement, lighting, mood, clothing, and props.\n\nYour task is to analyze the reference face image, extract the person’s visible appearance characteristics, and merge those characteristics naturally into the original video caption.\n\nREFERENCE FACE IMAGE:\n[REFERENCE IMAGE PROVIDED TO THE MODEL]\n\nORIGINAL VIDEO CAPTION:\n",
+      "string_b": [
+        "102",
+        0
+      ],
+      "delimiter": ""
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate Text"
+    }
+  },
+  "78": {
+    "inputs": {
+      "clip_name1": "gemma_3_12B_it_fp4_mixed.safetensors",
+      "clip_name2": "ltx-2.3_text_projection_bf16.safetensors",
+      "type": "ltxv",
+      "device": "default"
+    },
+    "class_type": "DualCLIPLoader",
+    "_meta": {
+      "title": "DualCLIPLoader"
+    }
+  },
+  "79": {
+    "inputs": {
+      "prompt": [
+        "86",
+        0
+      ],
+      "max_length": 1024,
+      "sampling_mode": "on",
+      "sampling_mode.temperature": 0.7,
+      "sampling_mode.top_k": 64,
+      "sampling_mode.top_p": 0.95,
+      "sampling_mode.min_p": 0.05,
+      "sampling_mode.repetition_penalty": 1.05,
+      "sampling_mode.seed": 0,
+      "sampling_mode.presence_penalty": 0,
+      "thinking": false,
+      "use_default_template": true,
+      "clip": [
+        "78",
+        0
+      ],
+      "image": [
+        "118",
+        0
+      ]
+    },
+    "class_type": "TextGenerate",
+    "_meta": {
+      "title": "Generate Text"
+    }
+  },
+  "81": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "130",
+        0
+      ],
+      "positive": [
+        "130",
+        1
+      ],
+      "negative": [
+        "130",
+        2
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFG Guider"
+    }
+  },
+  "83": {
+    "inputs": {
+      "frame_rate": [
+        "47",
+        0
+      ],
+      "positive": [
+        "40",
+        0
+      ],
+      "negative": [
+        "35",
+        0
+      ]
+    },
+    "class_type": "LTXVConditioning",
+    "_meta": {
+      "title": "LTXVConditioning"
+    }
+  },
+  "86": {
+    "inputs": {
+      "string_a": [
+        "72",
+        0
+      ],
+      "string_b": "\nSTRICT EDITING RULE:\n\nTreat the original video caption as locked text.\n\nYou are allowed to make only these edits:\n\n1. Expand the first subject phrase:\n   - Replace only `A person`, `A man`, or `A woman` with the same original subject noun plus visible appearance details.\n   - The original subject noun must remain present.\n   - Insert the appearance details immediately around the original subject noun.\n   - Do not delete or replace any words that appear after the original subject phrase.\n\n2. Optionally replace later subject pronouns:\n   - `They`, `He`, or `She` may be replaced with a short appearance-based reference.\n   - Preserve every verb, object, action, and remaining word from the original sentence.\n   - Do not alter the order of the words or actions.\n\nEverything else in the original caption is immutable.\n\nYou must preserve verbatim:\n\n- clothing and costumes;\n- actions;\n- action order;\n- environments;\n- objects and props;\n- camera framing;\n- camera movement;\n- lighting;\n- mood;\n- adjectives;\n- temporal transitions;\n- all principal nouns and verbs.\n\nCRITICAL PRESERVATION RULES:\n\n- Never remove clothing or costume descriptions.\n- Never remove phrases between the original subject and the main action.\n- Never replace original words with synonyms.\n- Never summarize or simplify the caption.\n- Never improve or creatively rewrite the caption.\n- Never add new actions, clothing, props, people, or environments.\n- Never mention or infer the person’s identity or name.\n- Never repeat labels such as `REFERENCE FACE IMAGE` or `ORIGINAL VIDEO CAPTION`.\n- Never write introductory text such as:\n  - `Okay`\n  - `I understand`\n  - `Let's proceed`\n  - `Here is the merged caption`\n  - `The result is`\n\nFACE IMAGE ANALYSIS:\n\nExtract only clearly visible, non-sensitive appearance details, such as:\n\n- apparent age group;\n- skin tone;\n- hair color;\n- hair length;\n- hair texture;\n- hairstyle;\n- face shape;\n- visible facial hair;\n- glasses;\n- clearly visible eye color;\n- other distinctive visible facial features.\n\nDo not:\n\n- identify the person;\n- repeat a name supplied in image metadata or surrounding text;\n- infer ethnicity, nationality, occupation, personality, religion, health, or background;\n- invent unclear characteristics;\n- infer clothing from the face image.\n\nMINIMUM-EDIT PROCEDURE:\n\nStep 1:\nCopy the original caption exactly.\n\nStep 2:\nLocate only the first subject phrase:\n- `A person`\n- `A man`\n- `A woman`\n\nStep 3:\nExpand that phrase with the extracted appearance while preserving the original subject noun.\n\nExample:\n\nOriginal:\n`A person dressed in a pirate costume walking along a harbor promenade`\n\nAllowed:\n`A fair-skinned adult person with short, neatly combed blond hair dressed in a pirate costume walking along a harbor promenade`\n\nForbidden:\n`A fair-skinned adult man with short blond hair walking along a harbor promenade`\n\nThe forbidden version removes:\n`dressed in a pirate costume`\n\nStep 4:\nFor later pronouns, either preserve the original pronoun or replace only the pronoun with a concise appearance-based subject reference.\n\nExample:\n\nOriginal:\n`They adjust the hat, hold a prop telescope, and continue strolling near the water.`\n\nAllowed:\n`The short-haired person adjusts the hat, holds a prop telescope, and continues strolling near the water.`\n\nDo not modify:\n`adjusts the hat, holds a prop telescope, and continues strolling near the water.`\n\nFINAL VALIDATION:\n\nBefore answering, silently compare the output with the original caption and verify:\n\n- every original costume and clothing phrase remains;\n- every original action remains;\n- every original prop remains;\n- every original environment remains;\n- every original framing term remains;\n- every original lighting and mood phrase remains;\n- the action order is unchanged;\n- no original principal word was removed;\n- no synonym replaced an original word;\n- only subject appearance information was added;\n- no introductory or explanatory text appears.\n\nOUTPUT REQUIREMENT:\n\nOutput exactly one line containing only the final `ref_t2v` caption.\n\nDo not output analysis, headings, labels, explanations, acknowledgements, or quotation marks.\n\nThe line must begin with exactly:\n\nref_t2v:",
+      "delimiter": ""
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Concatenate Text"
+    }
+  },
+  "91": {
+    "inputs": {
+      "noise": [
+        "50",
+        0
+      ],
+      "guider": [
+        "81",
+        0
+      ],
+      "sampler": [
+        "58",
+        0
+      ],
+      "sigmas": [
+        "68",
+        0
+      ],
+      "latent_image": [
+        "130",
+        3
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "98": {
+    "inputs": {
+      "preview_rate": 8,
+      "model": [
+        "99",
+        0
+      ],
+      "vae": [
+        "43",
+        0
+      ]
+    },
+    "class_type": "LTX2SamplingPreviewOverride",
+    "_meta": {
+      "title": "LTX2 Sampling Preview Override"
+    }
+  },
+  "99": {
+    "inputs": {
+      "lora_name": "Best_FaceID_v1.0_LoRA.safetensors",
+      "strength_model": 1,
+      "model": [
+        "168",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "Load LoRA"
+    }
+  },
+  "100": {
+    "inputs": {
+      "width": 1280,
+      "height": 704,
+      "length": [
+        "5",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyLTXVLatentVideo",
+    "_meta": {
+      "title": "EmptyLTXVLatentVideo"
+    }
+  },
+  "102": {
+    "inputs": {
+      "value": "ref_t2v: A person holding an AK-47, shown from the waist up wearing a guerilla outfit, walking confidently in the amazon jungles, cinematic, pouring rain"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Positive Prompt"
+    }
+  },
+  "104": {
+    "inputs": {
+      "image": "IMG_7479.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Face Reference"
+    }
+  },
+  "106": {
+    "inputs": {
+      "source": [
+        "79",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "Prompt Preview"
+    }
+  },
+  "109": {
+    "inputs": {
+      "inputcount": 2,
+      "direction": "right",
+      "match_image_size": true,
+      "Update inputs": null,
+      "image_1": [
+        "118",
+        0
+      ],
+      "image_2": [
+        "162",
+        0
+      ]
+    },
+    "class_type": "ImageConcatMulti",
+    "_meta": {
+      "title": "Image Concatenate Multi"
+    }
+  },
+  "111": {
+    "inputs": {
+      "text_x": 10,
+      "text_y": 2,
+      "height": 144,
+      "font_size": 12,
+      "font_color": "white",
+      "label_color": "black",
+      "font": "FreeMono.ttf",
+      "text": [
+        "106",
+        0
+      ],
+      "direction": "down",
+      "image": [
+        "109",
+        0
+      ]
+    },
+    "class_type": "AddLabel",
+    "_meta": {
+      "title": "Add Label"
+    }
+  },
+  "113": {
+    "inputs": {
+      "frames_number": [
+        "5",
+        1
+      ],
+      "frame_rate": [
+        "116",
+        1
+      ],
+      "batch_size": 1,
+      "audio_vae": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "LTXVEmptyLatentAudio",
+    "_meta": {
+      "title": "LTXV Empty Latent Audio"
+    }
+  },
+  "116": {
+    "inputs": {
+      "value": [
+        "47",
+        0
+      ]
+    },
+    "class_type": "ComfyNumberConvert",
+    "_meta": {
+      "title": "Convert Number"
+    }
+  },
+  "117": {
+    "inputs": {
+      "video_latent": [
+        "100",
+        0
+      ],
+      "audio_latent": [
+        "113",
+        0
+      ]
+    },
+    "class_type": "LTXVConcatAVLatent",
+    "_meta": {
+      "title": "LTXVConcatAVLatent"
+    }
+  },
+  "118": {
+    "inputs": {
+      "width": 512,
+      "height": 512,
+      "upscale_method": "lanczos",
+      "keep_proportion": "resize",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 2,
+      "device": "cpu",
+      "image": [
+        "104",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "124": {
+    "inputs": {
+      "samples": [
+        "55",
+        1
+      ],
+      "audio_vae": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "LTXVAudioVAEDecode",
+    "_meta": {
+      "title": "LTXV Audio VAE Decode"
+    }
+  },
+  "130": {
+    "inputs": {
+      "identity_projector": "None",
+      "source_id": 2,
+      "phase_scale": 1,
+      "id_strength": 1,
+      "arcface_mode": "auto_adjust",
+      "debug_log": false,
+      "model": [
+        "98",
+        0
+      ],
+      "positive": [
+        "83",
+        0
+      ],
+      "negative": [
+        "83",
+        1
+      ],
+      "vae": [
+        "8",
+        0
+      ],
+      "latent": [
+        "117",
+        0
+      ],
+      "reference_face": [
+        "118",
+        0
+      ]
+    },
+    "class_type": "LTXIdentityOverlapConditioning",
+    "_meta": {
+      "title": "LTX Identity Transfer"
+    }
+  },
+  "131": {
+    "inputs": {
+      "noise_seed": 385213383925105
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "132": {
+    "inputs": {
+      "video_latent": [
+        "142",
+        3
+      ],
+      "audio_latent": [
+        "55",
+        1
+      ]
+    },
+    "class_type": "LTXVConcatAVLatent",
+    "_meta": {
+      "title": "LTXVConcatAVLatent"
+    }
+  },
+  "133": {
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "134": {
+    "inputs": {
+      "sigmas": "0.85, 0.7250, 0.4219, 0.0"
+    },
+    "class_type": "ManualSigmas",
+    "_meta": {
+      "title": "ManualSigmas"
+    }
+  },
+  "135": {
+    "inputs": {
+      "cfg": 1,
+      "model": [
+        "142",
+        0
+      ],
+      "positive": [
+        "142",
+        1
+      ],
+      "negative": [
+        "142",
+        2
+      ]
+    },
+    "class_type": "CFGGuider",
+    "_meta": {
+      "title": "CFG Guider"
+    }
+  },
+  "136": {
+    "inputs": {
+      "samples": [
+        "55",
+        0
+      ],
+      "upscale_model": [
+        "27",
+        0
+      ],
+      "vae": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "LTXVLatentUpsampler",
+    "_meta": {
+      "title": "LTXVLatentUpsampler"
+    }
+  },
+  "138": {
+    "inputs": {
+      "noise": [
+        "131",
+        0
+      ],
+      "guider": [
+        "135",
+        0
+      ],
+      "sampler": [
+        "133",
+        0
+      ],
+      "sigmas": [
+        "170",
+        0
+      ],
+      "latent_image": [
+        "132",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "139": {
+    "inputs": {
+      "av_latent": [
+        "138",
+        0
+      ]
+    },
+    "class_type": "LTXVSeparateAVLatent",
+    "_meta": {
+      "title": "LTXVSeparateAVLatent"
+    }
+  },
+  "142": {
+    "inputs": {
+      "identity_projector": "None",
+      "source_id": 2,
+      "phase_scale": 1,
+      "id_strength": 1,
+      "arcface_mode": "auto_adjust",
+      "debug_log": false,
+      "model": [
+        "149",
+        0
+      ],
+      "positive": [
+        "34",
+        0
+      ],
+      "negative": [
+        "34",
+        1
+      ],
+      "vae": [
+        "8",
+        0
+      ],
+      "latent": [
+        "136",
+        0
+      ],
+      "reference_face": [
+        "118",
+        0
+      ]
+    },
+    "class_type": "LTXIdentityOverlapConditioning",
+    "_meta": {
+      "title": "LTX Identity Transfer"
+    }
+  },
+  "149": {
+    "inputs": {
+      "preview_rate": 8,
+      "model": [
+        "99",
+        0
+      ]
+    },
+    "class_type": "LTX2SamplingPreviewOverride",
+    "_meta": {
+      "title": "LTX2 Sampling Preview Override"
+    }
+  },
+  "162": {
+    "inputs": {
+      "text_x": 10,
+      "text_y": 2,
+      "height": 32,
+      "font_size": 32,
+      "font_color": "white",
+      "label_color": "black",
+      "font": "FreeMono.ttf",
+      "text": "2 pass",
+      "direction": "down",
+      "image": [
+        "173",
+        0
+      ]
+    },
+    "class_type": "AddLabel",
+    "_meta": {
+      "title": "Add Label"
+    }
+  },
+  "168": {
+    "inputs": {
+      "unet_name": "ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "169": {
+    "inputs": {
+      "frame_rate": 24,
+      "loop_count": 0,
+      "filename_prefix": "AnimateDiff",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 19,
+      "save_metadata": true,
+      "trim_to_audio": false,
+      "pingpong": false,
+      "save_output": true,
+      "images": [
+        "173",
+        0
+      ],
+      "audio": [
+        "172",
+        0
+      ]
+    },
+    "class_type": "VHS_VideoCombine",
+    "_meta": {
+      "title": "Video Combine 🎥🅥🅗🅢"
+    }
+  },
+  "170": {
+    "inputs": {
+      "scheduler": "linear_quadratic",
+      "steps": 4,
+      "denoise": 0.42,
+      "model": [
+        "142",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "BasicScheduler"
+    }
+  },
+  "172": {
+    "inputs": {
+      "samples": [
+        "139",
+        1
+      ],
+      "audio_vae": [
+        "26",
+        0
+      ]
+    },
+    "class_type": "LTXVAudioVAEDecode",
+    "_meta": {
+      "title": "LTXV Audio VAE Decode"
+    }
+  },
+  "173": {
+    "inputs": {
+      "samples": [
+        "139",
+        0
+      ],
+      "vae": [
+        "8",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  }
+}
