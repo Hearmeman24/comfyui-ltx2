@@ -262,9 +262,10 @@ fi
 
 # ===================== VideoHelperSuite =====================
 # The bundled LTX-2.5 workflows end in VHS_VideoCombine (the only output node
-# in the i2v graph), so without this node they won't even queue. Baked into the
-# Dockerfile from the next image on; cloned here too so existing images pick it
-# up on the next boot without a rebuild. Best-effort: never blocks boot.
+# in the i2v graph), so without this node they won't even queue. Cloned at boot
+# rather than baked, like ComfyUI-BFSNodes: it lands on the already-published
+# image without a rebuild, and stays on upstream HEAD. Best-effort: never
+# blocks boot.
 VHS_NODE_DIR="$CUSTOM_NODES_DIR/ComfyUI-VideoHelperSuite"
 if [ ! -d "$VHS_NODE_DIR/.git" ]; then
     echo "Cloning ComfyUI-VideoHelperSuite..."
