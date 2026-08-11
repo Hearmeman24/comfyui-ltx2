@@ -42,21 +42,23 @@ Plus the distilled `…-384-1.1` + abliterated Gemma LoRAs and the IC-LoRA colle
 
 ## 🆕 LTX-2.5 (opt-in)
 
-Set `download_ltx25=true` **and** a valid `HF_TOKEN` to add the [LTX-2.5](https://huggingface.co/Lightricks/LTX-2.5) set on top of LTX-2.3. It's a split, Comfy-aligned pack — ~83 GB, so budget the disk and the first-boot time.
+Set `download_ltx25=true` **and** a valid `HF_TOKEN` to add the [LTX-2.5](https://huggingface.co/Lightricks/LTX-2.5) set on top of LTX-2.3, along with the two bundled 2.5 workflows. It's a split, Comfy-aligned pack — ~52 GB, so budget the disk and the first-boot time.
 
 | File | → | Size |
 |---|---|---|
-| `ltx-2.5-22b-distilled-transformer-bf16` | `diffusion_models/` | 42.0 GB |
-| `gemma4-12b-with-proj-ltx-2.5-bf16` | `text_encoders/` | 26.3 GB |
+| `ltx-2.5-22b-distilled-transformer-comfy-int8-convrot` | `diffusion_models/` | 21.5 GB |
+| `gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot` | `text_encoders/` | 15.4 GB |
 | `gemma4_e2b_it_bf16` (prompt enhancer) | `text_encoders/` | 10.3 GB |
 | `ltx-2.5-video-vae-bf16` (DiffVAE) + `-conv-bf16` (faster) | `vae/` | 2.9 GB |
 | `ltx-2.5-audio-vae-bf16` | `vae/` | 0.4 GB |
 | `ltx-2.5-latent-spatial-` + `-temporal-upscaler-x2-bf16-1.0` | `latent_upscale_models/` | 1.3 GB |
 | `ltx-2.5-duration-head-bf16` | `model_patches/` | 4 MB |
 
+The transformer and text encoder are the **`comfy-int8-convrot`** builds — ComfyUI-only quantised weights (core added `int8_convrot` support in August 2026). They're what the bundled workflows load, and they halve the download against bf16.
+
 **`Lightricks/LTX-2.5` is gated.** Accept the license on the model page with the same account your `HF_TOKEN` comes from. Boot **fails open**: if the token is missing or the license isn't accepted, the pod logs the reason, skips the 2.5 set and comes up on LTX-2.3 anyway. Fix the token and restart — only the missing files are re-fetched.
 
-Workflows: ComfyUI-LTXVideo ships eight LTX-2.5 examples in `custom_nodes/ComfyUI-LTXVideo/example_workflows/2.5/` (T2V/I2V single + two stage, T2A, V2V, and the Union-Control / Motion-Track / Ingredients / Inpaint / Outpaint IC-LoRA workflows — those reuse the LTX-2.3 IC-LoRAs, which ship by default). The two-stage T2V/I2V examples load the **dev** transformer, which this set deliberately skips (another 42 GB) — point that node at the distilled transformer, or add the dev entry to `src/models_registry.json`.
+**Workflows:** `video_ltx2_5_t2v` and `video_ltx2_5_i2v` (two-stage distilled, 8 + 4 steps, with audio) ship into the workflows menu whenever `download_ltx25=true`. ComfyUI-LTXVideo also carries eight more 2.5 examples in `custom_nodes/ComfyUI-LTXVideo/example_workflows/2.5/` — note those load the **bf16** transformer and TE, so repoint their loaders at the `comfy-int8-convrot` files this template downloads.
 
 ---
 

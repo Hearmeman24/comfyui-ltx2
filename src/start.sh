@@ -212,7 +212,7 @@ if [ "${download_ltx25:-false}" = "true" ]; then
         echo "   ➜ Skipping the LTX-2.5 set and continuing on LTX-2.3 (fail-open)."
         export download_ltx25=false
     else
-        echo "✅ LTX-2.5 access confirmed — queueing the LTX-2.5 set (~83 GB, first boot is slow)."
+        echo "✅ LTX-2.5 access confirmed — queueing the LTX-2.5 set (~52 GB, first boot is slow)."
     fi
 else
     echo "⏭️  download_ltx25 not set — skipping the LTX-2.5 model set."
@@ -344,6 +344,16 @@ done
 # Legacy 19b workflows ship only when the 19b model set was downloaded.
 if [ "${download_ltx2_19b:-false}" = "true" ]; then
     for file in "$SOURCE_DIR"/legacy_19b/*; do
+        copy_workflow "$file"
+    done
+fi
+
+# Same for the LTX-2.5 workflows — shipping them without the 2.5 models just
+# hands the customer two workflows full of red nodes. Keyed off what the user
+# asked for, not the preflight's forced-off value: if the set was requested but
+# the gate blocked it, the workflows still land and the boot notice explains.
+if [ "$LTX25_REQUESTED" = "true" ]; then
+    for file in "$SOURCE_DIR"/LTX2.5/*; do
         copy_workflow "$file"
     done
 fi
@@ -489,7 +499,7 @@ if [ "$LTX25_REQUESTED" = "true" ]; then
         echo "    Details: README.md → 'LTX-2.5'."
         echo ""
     else
-        echo "✅ LTX-2.5 set complete — 2.5 workflows are in ComfyUI-LTXVideo → example_workflows/2.5."
+        echo "✅ LTX-2.5 set complete — open video_ltx2_5_t2v / video_ltx2_5_i2v in the workflows menu."
     fi
 fi
 
