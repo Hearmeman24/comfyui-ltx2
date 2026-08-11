@@ -260,6 +260,23 @@ else
     echo "ComfyUI-BFSNodes already present."
 fi
 
+# ===================== VideoHelperSuite =====================
+# The bundled LTX-2.5 workflows end in VHS_VideoCombine (the only output node
+# in the i2v graph), so without this node they won't even queue. Baked into the
+# Dockerfile from the next image on; cloned here too so existing images pick it
+# up on the next boot without a rebuild. Best-effort: never blocks boot.
+VHS_NODE_DIR="$CUSTOM_NODES_DIR/ComfyUI-VideoHelperSuite"
+if [ ! -d "$VHS_NODE_DIR/.git" ]; then
+    echo "Cloning ComfyUI-VideoHelperSuite..."
+    if git clone https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git "$VHS_NODE_DIR"; then
+        [ -f "$VHS_NODE_DIR/requirements.txt" ] && pip install -r "$VHS_NODE_DIR/requirements.txt" || true
+    else
+        echo "⚠️  ComfyUI-VideoHelperSuite clone failed — VHS_VideoCombine unavailable (LTX-2.5 workflows won't queue)."
+    fi
+else
+    echo "ComfyUI-VideoHelperSuite already present."
+fi
+
 declare -A MODEL_CATEGORIES=(
     ["$NETWORK_VOLUME/ComfyUI/models/loras"]="$LORAS_IDS_TO_DOWNLOAD"
     ["$NETWORK_VOLUME/ComfyUI/models/checkpoints"]="$SDXL_MODEL_IDS_TO_DOWNLOAD"
