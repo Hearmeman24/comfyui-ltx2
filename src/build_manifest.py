@@ -12,6 +12,9 @@ metadata so the legacy LTX-2 19b set can live in the registry too:
   - "variant": full|fp8 — among entries sharing the same flag the fp8 one is
                           queued when lightweight_fp8=true, the full one
                           otherwise. Entries without a variant are unaffected.
+  - "gated": true       — HF-gated repo; queued only when HF_TOKEN is set.
+  - "min_size_mb": <n>  — override the 10 MB "looks complete" floor for models
+                          that are genuinely small.
 
 Files already on disk above a 10 MB sanity threshold are skipped (same cutoff
 the legacy bash downloader used: catches complete files, re-fetches
@@ -64,7 +67,11 @@ def build(registry: dict, models_root: Path) -> tuple[list[str], list[str]]:
     for name in sorted(registry):
         entry = registry[name]
         dest = models_root / entry["subdir"] / name
-        if dest.is_file() and dest.stat().st_size >= MIN_OK_SIZE:
+        # A few models are legitimately smaller than the 10 MB sanity floor
+        # (the LTX-2.5 duration head is 3.8 MB). Without an override they'd
+        # look "truncated" and be re-downloaded on every boot.
+        floor = int(entry.get("min_size_mb", 0) * 1024 * 1024) or MIN_OK_SIZE
+        if dest.is_file() and dest.stat().st_size >= floor:
             skipped.append(name)
         else:
             lines.append(f"{entry['url']}\t{dest}")
@@ -126,6 +133,36 @@ def selftest() -> None:
     assert set(select(greg2, {}, False)) == {"open.safetensors"}
     assert set(select(greg2, {"HF_TOKEN": "hf_x"}, False)) == {"open.safetensors", "gated.safetensors"}
     assert set(select(greg2, {"HF_TOKEN": "  "}, False)) == {"open.safetensors"}  # blank token ignored
+
+    # flag + gated compose (the LTX-2.5 set): needs BOTH the opt-in flag and a
+    # token. Either one missing drops the entry — that's the fail-open path.
+    creg = {
+        "ltx25.safetensors": {"url": "https://h/2.5", "subdir": "diffusion_models",
+                              "flag": "download_ltx25", "gated": True},
+        "ltx25_open.safetensors": {"url": "https://h/e2b", "subdir": "text_encoders",
+                                   "flag": "download_ltx25"},
+    }
+    assert set(select(creg, {}, False)) == set()
+    assert set(select(creg, {"HF_TOKEN": "hf_x"}, False)) == set()
+    assert set(select(creg, {"download_ltx25": "true"}, False)) == {"ltx25_open.safetensors"}
+    assert set(select(creg, {"download_ltx25": "true", "HF_TOKEN": "hf_x"}, False)) == {
+        "ltx25.safetensors", "ltx25_open.safetensors"}
+
+    # min_size_mb: entries smaller than the 10 MB default (e.g. the 3.8 MB
+    # LTX-2.5 duration head) must be skippable once present, not re-queued
+    # every boot.
+    sreg = {"tiny.safetensors": {"url": "https://h/t", "subdir": "model_patches",
+                                 "min_size_mb": 1}}
+    with tempfile.TemporaryDirectory() as d:
+        root = Path(d)
+        tiny = root / "model_patches/tiny.safetensors"
+        tiny.parent.mkdir(parents=True)
+        tiny.write_bytes(b"\0" * (2 * 1024 * 1024))  # 2 MB — above its 1 MB floor
+        lines, skipped = build(sreg, root)
+        assert skipped == ["tiny.safetensors"] and lines == [], (skipped, lines)
+        tiny.write_bytes(b"\0" * 1024)  # 1 KB — truncated, must re-queue
+        lines, skipped = build(sreg, root)
+        assert skipped == [] and len(lines) == 1, (skipped, lines)
     print("ok")
 
 

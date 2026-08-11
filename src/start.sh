@@ -116,6 +116,7 @@ network_volume:
     diffusion_models: models/diffusion_models
     embeddings: models/embeddings
     loras: models/loras
+    model_patches: models/model_patches
     style_models: models/style_models
     text_encoders: models/text_encoders
     unet: models/unet
@@ -189,6 +190,32 @@ download_model() {
 if [ -n "$HF_TOKEN" ] && \
    ! curl -sf -H "Authorization: Bearer $HF_TOKEN" https://huggingface.co/api/whoami-v2 >/dev/null 2>&1; then
     echo "⚠️  HF_TOKEN looks invalid — gated IC-LoRAs may fail to download (see README → Gated IC-LoRAs)."
+fi
+
+# ===================== LTX-2.5 opt-in preflight =====================
+# Lightricks/LTX-2.5 is gated, so the whole set needs an HF_TOKEN from an
+# account that accepted its license. Probe once here instead of firing nine
+# doomed 403s: on any failure we log loudly, force the flag off so
+# build_manifest drops the 2.5 entries, and carry on booting on LTX-2.3.
+# Never fatal — an unavailable model must not cost the customer a deploy.
+LTX25_PROBE_URL="https://huggingface.co/Lightricks/LTX-2.5/resolve/main/model_patches/ltx-2.5-duration-head-bf16.safetensors"
+LTX25_REQUESTED="${download_ltx25:-false}"  # what the user asked for, before any forced-off
+if [ "${download_ltx25:-false}" = "true" ]; then
+    if [ -z "$HF_TOKEN" ]; then
+        echo "❌ download_ltx25=true but HF_TOKEN is not set — LTX-2.5 is GATED on Hugging Face."
+        echo "   ➜ Skipping the LTX-2.5 set and continuing on LTX-2.3 (see README → LTX-2.5)."
+        export download_ltx25=false
+    elif ! curl -sfI -H "Authorization: Bearer $HF_TOKEN" "$LTX25_PROBE_URL" >/dev/null 2>&1; then
+        echo "❌ LTX-2.5 is unavailable to this HF_TOKEN (license not accepted, or HF unreachable)."
+        echo "   ➜ Accept the license at https://huggingface.co/Lightricks/LTX-2.5 with the same"
+        echo "     account, then restart the pod — only the missing files are re-fetched."
+        echo "   ➜ Skipping the LTX-2.5 set and continuing on LTX-2.3 (fail-open)."
+        export download_ltx25=false
+    else
+        echo "✅ LTX-2.5 access confirmed — queueing the LTX-2.5 set (~83 GB, first boot is slow)."
+    fi
+else
+    echo "⏭️  download_ltx25 not set — skipping the LTX-2.5 model set."
 fi
 
 echo "📦 Provisioning models from registry..."
@@ -400,25 +427,36 @@ until curl --silent --fail "$URL" --output /dev/null; do
 done
 echo "🚀 ComfyUI is ready"
 
-# Gated IC-LoRA notice. If the user kept the IC-LoRA set enabled but the gated
-# ones didn't land (no HF_TOKEN, or the model licenses weren't accepted), the
-# files are simply absent from models/loras. Surface that clearly and point to
-# the README rather than letting them wonder why a workflow can't find them.
-if [ "${disable_ic_loras:-false}" != "true" ]; then
-    GATED_MISSING=$(python3 - "$PERSIST_ROOT/models" <<'PY'
+# Missing-model notices. Both the gated LTX-2.3 IC-LoRAs and the opt-in LTX-2.5
+# set can legitimately not land (no HF_TOKEN, license not accepted) — every path
+# fails open, so this notice is the only signal the customer gets. Keep the two
+# groups apart: a skipped LTX-2.5 set must never read as a missing IC-LoRA.
+missing_models() {  # $1 = ic | ltx25  ->  "<count>\n<name>\n<name>..."
+    python3 - "$PERSIST_ROOT/models" "$1" "${REGISTRY_JSON:-/models_registry.json}" <<'PY'
 import json, os, sys
-root = sys.argv[1]
+root, group, registry = sys.argv[1], sys.argv[2], sys.argv[3]
 try:
-    reg = json.load(open("/models_registry.json"))
+    reg = json.load(open(registry))
 except Exception:
     print(0); raise SystemExit
+
+
+def in_group(e):
+    if group == "ltx25":
+        return e.get("flag") == "download_ltx25"
+    return bool(e.get("gated")) and e.get("disable_flag") == "disable_ic_loras"
+
+
 missing = [n for n, e in reg.items()
-           if e.get("gated") and not os.path.isfile(os.path.join(root, e["subdir"], n))]
+           if in_group(e) and not os.path.isfile(os.path.join(root, e["subdir"], n))]
 print(len(missing))
 for n in missing:
     print(n)
 PY
-)
+}
+
+if [ "${disable_ic_loras:-false}" != "true" ]; then
+    GATED_MISSING=$(missing_models ic)
     GATED_COUNT=$(printf '%s\n' "$GATED_MISSING" | head -n1)
     if [ "${GATED_COUNT:-0}" -gt 0 ] 2>/dev/null; then
         echo ""
@@ -432,6 +470,26 @@ PY
         echo "    Full list, per-model links and details: README.md → 'Gated IC-LoRAs'."
         echo "    (Or set disable_ic_loras=true to skip the IC-LoRA set entirely.)"
         echo ""
+    fi
+fi
+
+if [ "$LTX25_REQUESTED" = "true" ]; then
+    LTX25_MISSING=$(missing_models ltx25)
+    LTX25_COUNT=$(printf '%s\n' "$LTX25_MISSING" | head -n1)
+    if [ "${LTX25_COUNT:-0}" -gt 0 ] 2>/dev/null; then
+        echo ""
+        echo "⚠️  download_ltx25=true but ${LTX25_COUNT} LTX-2.5 file(s) are missing:"
+        printf '%s\n' "$LTX25_MISSING" | tail -n +2 | sed 's/^/      - /'
+        echo ""
+        echo "    ComfyUI started anyway on the LTX-2.3 set — the LTX-2.5 workflows will"
+        echo "    show red nodes until these land. Lightricks/LTX-2.5 is GATED:"
+        echo "      1. Accept the license at https://huggingface.co/Lightricks/LTX-2.5"
+        echo "      2. Set HF_TOKEN to a token from that same account."
+        echo "      3. Restart the pod — only the missing files are re-fetched."
+        echo "    Details: README.md → 'LTX-2.5'."
+        echo ""
+    else
+        echo "✅ LTX-2.5 set complete — 2.5 workflows are in ComfyUI-LTXVideo → example_workflows/2.5."
     fi
 fi
 
