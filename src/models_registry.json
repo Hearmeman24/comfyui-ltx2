@@ -224,5 +224,59 @@
   "ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors": {
     "url": "https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors",
     "subdir": "diffusion_models"
+  },
+  "ltx-2.5-22b-distilled-transformer-bf16.safetensors": {
+    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/diffusion_models/ltx-2.5-22b-distilled-transformer-bf16.safetensors",
+    "subdir": "diffusion_models",
+    "flag": "download_ltx25",
+    "gated": true
+  },
+  "gemma4-12b-with-proj-ltx-2.5-bf16.safetensors": {
+    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/text_encoders/gemma4-12b-with-proj-ltx-2.5-bf16.safetensors",
+    "subdir": "text_encoders",
+    "flag": "download_ltx25",
+    "gated": true
+  },
+  "gemma4_e2b_it_bf16.safetensors": {
+    "url": "https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e2b_it_bf16.safetensors",
+    "subdir": "text_encoders",
+    "flag": "download_ltx25"
+  },
+  "ltx-2.5-video-vae-bf16.safetensors": {
+    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/vae/ltx-2.5-video-vae-bf16.safetensors",
+    "subdir": "vae",
+    "flag": "download_ltx25",
+    "gated": true
+  },
+  "ltx-2.5-video-vae-conv-bf16.safetensors": {
+    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/vae/ltx-2.5-video-vae-conv-bf16.safetensors",
+    "subdir": "vae",
+    "flag": "download_ltx25",
+    "gated": true
+  },
+  "ltx-2.5-audio-vae-bf16.safetensors": {
+    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/vae/ltx-2.5-audio-vae-bf16.safetensors",
+    "subdir": "vae",
+    "flag": "download_ltx25",
+    "gated": true
+  },
+  "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors": {
+    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "subdir": "latent_upscale_models",
+    "flag": "download_ltx25",
+    "gated": true
+  },
+  "ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors": {
+    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/latent_upscale_models/ltx-2.5-latent-temporal-upscaler-x2-bf16-1.0.safetensors",
+    "subdir": "latent_upscale_models",
+    "flag": "download_ltx25",
+    "gated": true
+  },
+  "ltx-2.5-duration-head-bf16.safetensors": {
+    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/model_patches/ltx-2.5-duration-head-bf16.safetensors",
+    "subdir": "model_patches",
+    "flag": "download_ltx25",
+    "gated": true,
+    "min_size_mb": 1
   }
 }

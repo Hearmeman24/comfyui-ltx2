@@ -2,9 +2,9 @@
 
 # ComfyUI + LTX-2.3 — RunPod template
 
-One-click **ComfyUI + LTX-2.3** audio-video generation. The bundled LTX Director workflow and the full LTX-2.3 model set (incl. the IC-LoRA collection) provision on first boot; the legacy **LTX-2 19b** set + workflows stay behind one opt-in flag.
+One-click **ComfyUI + LTX-2.3** audio-video generation. The bundled LTX Director workflow and the full LTX-2.3 model set (incl. the IC-LoRA collection) provision on first boot; **LTX-2.5** and the legacy **LTX-2 19b** set each stay behind one opt-in flag.
 
-> Docker image: `comfyui-ltx-template:v7`
+> Docker image: `comfyui-ltx-template:v9`
 
 Models are registry-driven (`src/models_registry.json`), fetched in parallel over Hugging Face (`hf_hub_download` + `hf_xet`) and skipped if already on the network volume. ComfyUI lives in the image; `models`/`user`/`output`/`input` persist on the volume, so re-deploys are fast.
 
@@ -14,7 +14,8 @@ Models are registry-driven (`src/models_registry.json`), fetched in parallel ove
 
 | Variable | Default | Description |
 |---|---|---|
-| `HF_TOKEN` | — | **Required for the gated IC-LoRAs.** A Hugging Face token from an account that has accepted each gated model's license (see below). Without it, the 11 gated LoRAs are skipped. |
+| `HF_TOKEN` | — | **Required for the gated IC-LoRAs and for LTX-2.5.** A Hugging Face token from an account that has accepted each gated model's license (see below). Without it, the 11 gated LoRAs and the whole LTX-2.5 set are skipped. |
+| `download_ltx25` | `false` | Opt in to the **LTX-2.5** model set (~83 GB, gated — needs `HF_TOKEN`). See below. |
 | `disable_ic_loras` | `false` | `true` skips the LTX-2.3 IC-LoRA collection (13 LoRAs, ~10 GB, on by default). |
 | `download_ltx2_19b` | `false` | Opt in to the legacy LTX-2 19b model set + its `legacy_19b/` workflows (T2V, I2V, canny, depth). |
 | `lightweight_fp8` | `false` | **19b only** — use the FP8 19b checkpoint and rewrite the 19b workflows to match. |
@@ -36,6 +37,26 @@ Models are registry-driven (`src/models_registry.json`), fetched in parallel ove
 `ltx-2.3-22b-dev-fp8` → checkpoints · `gemma_3_12B_it_fp4_mixed` + `ltx-2.3_text_projection_bf16` → text_encoders · distilled rank-105 LoRA → loras/ltx2 · `LTX23_video_vae` + `LTX23_audio_vae` + `taeltx2_3` → vae · `spatial-upscaler-x2-1.1` → latent_upscale_models.
 
 Plus the distilled `…-384-1.1` + abliterated Gemma LoRAs and the IC-LoRA collection below. Edit `src/models_registry.json` to change the set.
+
+---
+
+## 🆕 LTX-2.5 (opt-in)
+
+Set `download_ltx25=true` **and** a valid `HF_TOKEN` to add the [LTX-2.5](https://huggingface.co/Lightricks/LTX-2.5) set on top of LTX-2.3. It's a split, Comfy-aligned pack — ~83 GB, so budget the disk and the first-boot time.
+
+| File | → | Size |
+|---|---|---|
+| `ltx-2.5-22b-distilled-transformer-bf16` | `diffusion_models/` | 42.0 GB |
+| `gemma4-12b-with-proj-ltx-2.5-bf16` | `text_encoders/` | 26.3 GB |
+| `gemma4_e2b_it_bf16` (prompt enhancer) | `text_encoders/` | 10.3 GB |
+| `ltx-2.5-video-vae-bf16` (DiffVAE) + `-conv-bf16` (faster) | `vae/` | 2.9 GB |
+| `ltx-2.5-audio-vae-bf16` | `vae/` | 0.4 GB |
+| `ltx-2.5-latent-spatial-` + `-temporal-upscaler-x2-bf16-1.0` | `latent_upscale_models/` | 1.3 GB |
+| `ltx-2.5-duration-head-bf16` | `model_patches/` | 4 MB |
+
+**`Lightricks/LTX-2.5` is gated.** Accept the license on the model page with the same account your `HF_TOKEN` comes from. Boot **fails open**: if the token is missing or the license isn't accepted, the pod logs the reason, skips the 2.5 set and comes up on LTX-2.3 anyway. Fix the token and restart — only the missing files are re-fetched.
+
+Workflows: ComfyUI-LTXVideo ships eight LTX-2.5 examples in `custom_nodes/ComfyUI-LTXVideo/example_workflows/2.5/` (T2V/I2V single + two stage, T2A, V2V, and the Union-Control / Motion-Track / Ingredients / Inpaint / Outpaint IC-LoRA workflows — those reuse the LTX-2.3 IC-LoRAs, which ship by default). The two-stage T2V/I2V examples load the **dev** transformer, which this set deliberately skips (another 42 GB) — point that node at the distilled transformer, or add the dev entry to `src/models_registry.json`.
 
 ---
 
@@ -63,8 +84,9 @@ Nodes: ComfyUI-Manager + [ComfyUI-LTXVideo](https://github.com/Lightricks/ComfyU
 
 - **`IMPORT FAILED`** → Manager → *Install missing custom nodes* → *Try fix*.
 - **Gated LoRAs missing** → set a valid `HF_TOKEN`, accept the licenses, restart.
+- **LTX-2.5 nodes red / models missing** → the boot log says why (no token, or license not accepted). Fix it and restart; the set is skipped, never fatal.
 - **Slow / stalled boot** → check `/workspace/comfyui_*_nohup.log`.
 
 ## 🔗 Links
 
-[LTX-2.3](https://huggingface.co/Lightricks/LTX-2.3) · [awesome-ltx2](https://github.com/wildminder/awesome-ltx2) · [WhatDreamsCost](https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI)
+[LTX-2.5](https://huggingface.co/Lightricks/LTX-2.5) · [LTX-2.3](https://huggingface.co/Lightricks/LTX-2.3) · [awesome-ltx2](https://github.com/wildminder/awesome-ltx2) · [WhatDreamsCost](https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI)

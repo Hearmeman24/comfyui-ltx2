@@ -68,6 +68,11 @@ FROM base AS final
 ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install opencv-python
 
+# Same cache-bust trick as ComfyUI core, for the one custom node whose version
+# actually gates a model release: LTX-2.5 support landed in ComfyUI-LTXVideo on
+# 2026-08-11 (example_workflows/2.5/). Without this, docker_layer_caching serves
+# the cached clone layer and a "rebuild" quietly ships the previous node.
+ADD https://api.github.com/repos/Lightricks/ComfyUI-LTXVideo/git/refs/heads/master /ltxvideo-master-ref.json
 RUN for repo in \
     https://github.com/ssitu/ComfyUI_UltimateSDUpscale.git \
     https://github.com/kijai/ComfyUI-KJNodes.git \
