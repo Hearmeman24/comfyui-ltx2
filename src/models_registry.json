@@ -225,14 +225,14 @@
     "url": "https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/diffusion_models/ltx-2.3-22b-distilled-1.1_transformer_only_fp8_scaled.safetensors",
     "subdir": "diffusion_models"
   },
-  "ltx-2.5-22b-distilled-transformer-bf16.safetensors": {
-    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/diffusion_models/ltx-2.5-22b-distilled-transformer-bf16.safetensors",
+  "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors": {
+    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
     "subdir": "diffusion_models",
     "flag": "download_ltx25",
     "gated": true
   },
-  "gemma4-12b-with-proj-ltx-2.5-bf16.safetensors": {
-    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/text_encoders/gemma4-12b-with-proj-ltx-2.5-bf16.safetensors",
+  "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors": {
+    "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
     "subdir": "text_encoders",
     "flag": "download_ltx25",
     "gated": true

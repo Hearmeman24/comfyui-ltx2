@@ -3,18 +3,20 @@
 
 Offline checks (always run; used by the pre-push hook):
   1. Workflow JSON validity — every workflows/**/*.json must parse.
-  2. Coverage — every .safetensors a top-level workflows/*.json references
-     must exist as a key in src/models_registry.json. Catches a workflow
-     pointing at a model nothing provisions (red node at runtime).
+  2. Coverage — every .safetensors a workflow references (top-level nodes AND
+     subgraph definitions) must exist as a key in src/models_registry.json.
+     Catches a workflow pointing at a model nothing provisions (red node at
+     runtime) — e.g. a workflow wanting the int8-convrot weights while the
+     registry downloads bf16.
 
 Network check (skipped with --offline):
   3. Registry reachability — every URL in src/models_registry.json must
      answer 200/301/302 to a HEAD (falls back to a 1-byte ranged GET for
      hosts that reject HEAD).
 
-Coverage scopes to top-level workflows only. The legacy LTX-2 19b workflows
-in workflows/legacy_19b/ reference models fetched by the gated bash path in
-start.sh (not the registry), so enforcing coverage there is pure noise.
+Coverage scopes to registry-provisioned workflows. The legacy LTX-2 19b
+workflows in workflows/legacy_19b/ reference models fetched by the gated bash
+path in start.sh (not the registry), so enforcing coverage there is pure noise.
 
 Stdlib only — no pip install needed in CI.
 """
@@ -45,17 +47,27 @@ def check_workflows() -> list[str]:
 
 def _workflow_model_refs(wf_json: dict) -> set[str]:
     refs = set()
-    for node in wf_json.get("nodes", []):
-        for w in (node.get("widgets_values") or []):
-            if isinstance(w, str) and w.endswith(".safetensors"):
-                refs.add(w)
+    # Loaders increasingly live inside subgraph definitions rather than the
+    # top-level node list (the LTX-2.5 workflows keep every loader in one), so
+    # walk both or coverage silently checks nothing.
+    groups = [wf_json.get("nodes", [])]
+    groups += [sg.get("nodes", []) for sg in
+               (wf_json.get("definitions", {}) or {}).get("subgraphs", [])]
+    for nodes in groups:
+        for node in nodes:
+            for w in (node.get("widgets_values") or []):
+                if isinstance(w, str) and w.endswith(".safetensors"):
+                    refs.add(w)
     return refs
 
 
 def check_coverage(registry: dict) -> list[str]:
-    # Top-level workflows/*.json only — legacy_19b/ is bash-provisioned (see module docstring).
+    # Every registry-provisioned workflow — top-level plus subdirs like LTX2.5/.
+    # legacy_19b/ is excluded: it's bash-provisioned (see module docstring).
     errors = []
-    for wf in sorted(WORKFLOWS.glob("*.json")):
+    for wf in sorted(WORKFLOWS.rglob("*.json")):
+        if "legacy_19b" in wf.parts:
+            continue
         try:
             data = json.loads(wf.read_text())
         except Exception:
