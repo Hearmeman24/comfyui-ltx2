@@ -172,8 +172,8 @@
     "disable_flag": "disable_ic_loras",
     "gated": true
   },
-  "ltx-2.3-22b-ic-lora-lipdub-0.9.safetensors": {
-    "url": "https://huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-LipDub/resolve/main/ltx-2.3-22b-ic-lora-lipdub-0.9.safetensors",
+  "ltx-2.3-22b-ic-lora-dubit-0.9.safetensors": {
+    "url": "https://huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-DubIt/resolve/main/ltx-2.3-22b-ic-lora-dubit-0.9.safetensors",
     "subdir": "loras",
     "disable_flag": "disable_ic_loras",
     "gated": true

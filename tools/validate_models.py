@@ -10,9 +10,12 @@ Offline checks (always run; used by the pre-push hook):
      registry downloads bf16.
 
 Network check (skipped with --offline):
-  3. Registry reachability — every URL in src/models_registry.json must
-     answer 200/301/302 to a HEAD (falls back to a 1-byte ranged GET for
-     hosts that reject HEAD).
+  3. Registry existence — every file in src/models_registry.json must actually
+     be listed in its Hugging Face repo. Checked against the public model API
+     rather than a HEAD on the resolve URL, because a gated repo answers 401 to
+     unauthenticated CI whether or not the file is there; that blind spot let a
+     renamed IC-LoRA (LipDub -> DubIt) sit broken in the registry while CI
+     stayed green. Repo renames are followed, and named in the error.
 
 Coverage scopes to registry-provisioned workflows. The legacy LTX-2 19b
 workflows in workflows/legacy_19b/ reference models fetched by the gated bash
@@ -21,6 +24,7 @@ path in start.sh (not the registry), so enforcing coverage there is pure noise.
 Stdlib only — no pip install needed in CI.
 """
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -33,6 +37,9 @@ WORKFLOWS = REPO / "workflows"
 TIMEOUT = 30
 OK = {200, 301, 302}
 UA = {"User-Agent": "ltx2-template-validator/1.0"}
+# https://huggingface.co/<owner>/<repo>/resolve/<rev>/<path/in/repo>
+HF_RESOLVE_RE = re.compile(
+    r"^https://huggingface\.co/(?P<repo>[^/]+/[^/]+)/resolve/[^/]+/(?P<file>.+?)(?:\?.*)?$")
 
 
 def check_workflows() -> list[str]:
@@ -103,17 +110,46 @@ def _status(url: str, method: str) -> int:
         return r.status
 
 
+def _hf_listing(repo: str) -> tuple[str, set[str]]:
+    """(resolved_repo, files) from the public HF model API. Follows renames."""
+    req = urllib.request.Request(f"https://huggingface.co/api/models/{repo}",
+                                 headers=dict(UA))
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as r:
+        data = json.loads(r.read())
+        # urllib follows the 307 a renamed repo issues; recover where we landed.
+        landed = r.url.rsplit("/api/models/", 1)[-1]
+    return landed, {s["rfilename"] for s in data.get("siblings", [])}
+
+
 def check_url(job: tuple[str, str, bool]) -> str | None:
     name, url, gated = job
-    # Gated repos (gated: auto on HF) answer 401/403 to unauthenticated CI;
-    # that still confirms the path resolves to a real gated file, so accept it.
-    ok = OK | {401, 403} if gated else OK
+    # Prefer the model API over a HEAD on the resolve URL. A gated repo answers
+    # 401 to unauthenticated CI whether or not the file exists, so HEAD can only
+    # ever confirm "something gated lives here" — it passed happily for months
+    # after Lightricks renamed LipDub to DubIt and the old filename 404'd.
+    # Gated repos expose their file list publicly, so ask for it and check the
+    # actual filename. Renames surface as a redirect we can name in the error.
+    m = HF_RESOLVE_RE.match(url)
+    if m:
+        repo, path = m["repo"], m["file"]
+        try:
+            landed, files = _hf_listing(repo)
+            if path in files:
+                return None
+            if landed.lower() != repo.lower():
+                return (f"{name}: '{path}' not in {landed} — {repo} was renamed to "
+                        f"{landed} and the file did not come across under this name")
+            return f"{name}: '{path}' is not in {repo} (removed or renamed)"
+        except Exception as e:  # noqa: BLE001
+            return f"{name}: could not list {repo}: {e}"
+
+    # Non-HF URLs (none today) keep the reachability check.
     for method in ("HEAD", "GET"):
         try:
-            if _status(url, method) in ok:
+            if _status(url, method) in OK:
                 return None
         except urllib.error.HTTPError as e:
-            if e.code in ok:
+            if e.code in OK:
                 return None
             last = f"HTTP {e.code}"
         except Exception as e:  # noqa: BLE001
@@ -136,17 +172,17 @@ def main() -> int:
     else:
         jobs = [(n, e["url"], bool(e.get("gated"))) for n, e in registry.items()]
         gated_n = sum(1 for *_, g in jobs if g)
-        print(f"🔎 checking {len(jobs)} registry URLs ({gated_n} gated, 401/403 tolerated)...")
+        print(f"🔎 verifying {len(jobs)} registry files exist in their HF repos ({gated_n} gated)...")
         with ThreadPoolExecutor(max_workers=8) as pool:
             url_errors = [r for r in pool.map(check_url, jobs) if r]
         for e in url_errors:
-            print(f"❌ unreachable: {e}")
+            print(f"❌ missing: {e}")
 
     total = len(wf_errors) + len(cov_errors) + len(url_errors)
     if total:
         print(f"\n💥 {total} problem(s) found")
         return 1
-    reach = "skipped" if offline else f"{len(registry)} URLs reachable"
+    reach = "skipped" if offline else f"{len(registry)} registry files present upstream"
     print(f"✅ all workflows valid, every referenced model in registry, {reach}")
     return 0
 
