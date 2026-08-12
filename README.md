@@ -72,7 +72,7 @@ The LTX-2.3 IC-LoRA collection (13 LoRAs, used by [ComfyUI-LTXVideo](https://git
 Each repo is `huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-<Name>`:
 
 - **Public** (always download): [Union-Control](https://huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-Union-Control), [Motion-Track-Control](https://huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-Motion-Track-Control)
-- **Gated** (accept each license): `HDR`, `LipDub`, `Instant-Shave`, `Colorization`, `Cross-Eyed`, `Day-To-Night`, `Deblur`, `Decompression`, `In-Outpainting`, `Water-Simulation`, `Ingredients`
+- **Gated** (accept each license): `HDR`, `DubIt` (was `LipDub` — Lightricks renamed it), `Instant-Shave`, `Colorization`, `Cross-Eyed`, `Day-To-Night`, `Deblur`, `Decompression`, `In-Outpainting`, `Water-Simulation`, `Ingredients`
 
 ---
 
