@@ -76,8 +76,22 @@ def check_coverage(registry: dict) -> list[str]:
             # Registry keys are basenames; a model in a subdir (e.g. loras/ltx2)
             # is referenced in the workflow with its subfolder prefix
             # ("ltx2/foo.safetensors"), so match on basename.
-            if Path(model).name not in registry:
+            name = Path(model).name
+            if name not in registry:
                 errors.append(f"{wf.relative_to(REPO)} references '{model}' — not in models_registry.json")
+                continue
+            # ...but the prefix has to be right. ComfyUI resolves a widget value
+            # relative to the category root, so "vae/foo.safetensors" for a model
+            # that sits in models/vae/ becomes models/vae/vae/foo.safetensors and
+            # shows up as a missing model. Only a genuine subfolder belongs in the
+            # prefix: registry subdir "vae" -> "", "loras/ltx2" -> "ltx2".
+            want = "/".join(registry[name]["subdir"].split("/")[1:])
+            got = str(Path(model).parent) if "/" in model else ""
+            if got != want:
+                shown = f"'{want}/{name}'" if want else f"'{name}'"
+                errors.append(
+                    f"{wf.relative_to(REPO)} references '{model}' — wrong folder prefix; "
+                    f"ComfyUI resolves it under models/{registry[name]['subdir']}/. Use {shown}.")
     return errors
 
 
