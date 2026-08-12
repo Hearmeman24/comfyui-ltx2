@@ -15,7 +15,8 @@ Models are registry-driven (`src/models_registry.json`), fetched in parallel ove
 | Variable | Default | Description |
 |---|---|---|
 | `HF_TOKEN` | — | **Required for the gated IC-LoRAs and for LTX-2.5.** A Hugging Face token from an account that has accepted each gated model's license (see below). Without it, the 11 gated LoRAs and the whole LTX-2.5 set are skipped. |
-| `download_ltx25` | `false` | Opt in to the **LTX-2.5** model set (~83 GB, gated — needs `HF_TOKEN`). See below. |
+| `download_ltx23` | `true` | The **LTX-2.3** base set + its four workflows. Set `false` to skip them (e.g. running LTX-2.5 only). Only a literal `false` turns it off. |
+| `download_ltx25` | `false` | Opt in to the **LTX-2.5** model set (~52 GB, gated — needs `HF_TOKEN`). See below. |
 | `disable_ic_loras` | `false` | `true` skips the LTX-2.3 IC-LoRA collection (13 LoRAs, ~10 GB, on by default). |
 | `download_ltx2_19b` | `false` | Opt in to the legacy LTX-2 19b model set + its `legacy_19b/` workflows (T2V, I2V, canny, depth). |
 | `lightweight_fp8` | `false` | **19b only** — use the FP8 19b checkpoint and rewrite the 19b workflows to match. |
@@ -37,6 +38,8 @@ Models are registry-driven (`src/models_registry.json`), fetched in parallel ove
 `ltx-2.3-22b-dev-fp8` → checkpoints · `gemma_3_12B_it_fp4_mixed` + `ltx-2.3_text_projection_bf16` → text_encoders · distilled rank-105 LoRA → loras/ltx2 · `LTX23_video_vae` + `LTX23_audio_vae` + `taeltx2_3` → vae · `spatial-upscaler-x2-1.1` → latent_upscale_models.
 
 Plus the distilled `…-384-1.1` + abliterated Gemma LoRAs and the IC-LoRA collection below. Edit `src/models_registry.json` to change the set.
+
+**Skipping it:** `download_ltx23=false` drops these 12 models *and* the four bundled 2.3 workflows — useful if you only want LTX-2.5. Two things stay independent of it: the IC-LoRA collection (its own `disable_ic_loras` switch — the 2.5 IC-LoRA workflows reuse the 2.3 IC-LoRAs, so they're still worth having) and anything you pull via the CivitAI vars. Turning off both `download_ltx23` and `download_ltx25` leaves you with no LTX weights at all; the boot log warns if you do.
 
 ---
 

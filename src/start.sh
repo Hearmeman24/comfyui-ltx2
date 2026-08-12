@@ -192,6 +192,18 @@ if [ -n "$HF_TOKEN" ] && \
     echo "⚠️  HF_TOKEN looks invalid — gated IC-LoRAs may fail to download (see README → Gated IC-LoRAs)."
 fi
 
+# ===================== LTX-2.3 opt-out =====================
+# The 2.3 base set ships unless explicitly switched off, so an untouched pod
+# behaves exactly as before (build_manifest calls this "on_by_default"). Only a
+# literal "false" turns it off — a typo must not strip the default models.
+if [ "$(printf '%s' "${download_ltx23:-true}" | tr '[:upper:]' '[:lower:]')" = "false" ]; then
+    LTX23_ENABLED=false
+    echo "⏭️  download_ltx23=false — skipping the LTX-2.3 base set and its workflows."
+    echo "    (The IC-LoRA collection is separate — use disable_ic_loras=true to skip that too.)"
+else
+    LTX23_ENABLED=true
+fi
+
 # ===================== LTX-2.5 opt-in preflight =====================
 # Lightricks/LTX-2.5 is gated, so the whole set needs an HF_TOKEN from an
 # account that accepted its license. Probe once here instead of firing nine
@@ -216,6 +228,14 @@ if [ "${download_ltx25:-false}" = "true" ]; then
     fi
 else
     echo "⏭️  download_ltx25 not set — skipping the LTX-2.5 model set."
+fi
+
+# Both model sets off leaves a ComfyUI with no LTX weights at all. That's a
+# legitimate choice (bring your own via CivitAI vars), but it's far more often
+# a mistake, so say so plainly rather than let it look like a failed download.
+if [ "$LTX23_ENABLED" = "false" ] && [ "${download_ltx25:-false}" != "true" ]; then
+    echo "⚠️  Both download_ltx23=false and download_ltx25 unset — no LTX model set will be"
+    echo "    downloaded. Set one of them unless you're supplying your own models."
 fi
 
 echo "📦 Provisioning models from registry..."
@@ -355,9 +375,16 @@ copy_workflow() {
     fi
 }
 
-for file in "$SOURCE_DIR"/*; do
-    copy_workflow "$file"
-done
+# Top-level workflows are all LTX-2.3 (Director, T2V/I2V, Motion-Track, Face-ID),
+# so they ship with the 2.3 set. Shipping them when the models were skipped just
+# hands the customer four workflows of red nodes.
+if [ "$LTX23_ENABLED" = "true" ]; then
+    for file in "$SOURCE_DIR"/*; do
+        copy_workflow "$file"
+    done
+else
+    echo "⏭️  Skipping the LTX-2.3 workflows (download_ltx23=false)."
+fi
 
 # Legacy 19b workflows ship only when the 19b model set was downloaded.
 if [ "${download_ltx2_19b:-false}" = "true" ]; then

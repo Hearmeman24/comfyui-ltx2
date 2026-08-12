@@ -7,8 +7,13 @@ queue registry entries directly — but a few entries carry lightweight selectio
 metadata so the legacy LTX-2 19b set can live in the registry too:
 
   - "flag": <env-var>   — entry is queued only when that flag env var is "true"
-                          (e.g. download_ltx2_19b). No flag = always queued
-                          (the default LTX-2.3 set).
+                          (e.g. download_ltx2_19b, download_ltx25). No flag =
+                          always queued.
+  - "on_by_default"     — pairs with "flag" to invert it: the entry ships
+                          unless the flag is explicitly "false". Used by
+                          download_ltx23 so the default LTX-2.3 set stays on
+                          for every existing pod but can be skipped by anyone
+                          who only wants LTX-2.5.
   - "variant": full|fp8 — among entries sharing the same flag the fp8 one is
                           queued when lightweight_fp8=true, the full one
                           otherwise. Entries without a variant are unaffected.
@@ -37,7 +42,9 @@ MIN_OK_SIZE = 10 * 1024 * 1024  # 10 MB
 def select(registry: dict, env: dict, lightweight_fp8: bool) -> dict:
     """Filter the registry by flag gating + fp8/full variant choice.
 
-    - "flag": <env>        opt-IN  — kept only when env[flag] == "true".
+    - "flag": <env>        opt-IN  — kept only when env[flag] == "true", unless
+                            "on_by_default" is set, in which case it's opt-OUT
+                            and kept unless env[flag] == "false".
     - "disable_flag": <env> opt-OUT — kept unless env[disable_flag] == "true"
                             (so it ships by default, e.g. the IC-LoRA set).
     - "variant": full|fp8  among variant-tagged entries, keep the fp8 one when
@@ -48,9 +55,21 @@ def select(registry: dict, env: dict, lightweight_fp8: bool) -> dict:
     """
     enabled = {k for k, v in env.items() if v == "true"}
     has_token = bool((env.get("HF_TOKEN") or "").strip())
+
+    def flag_ok(e: dict) -> bool:
+        flag = e.get("flag")
+        if not flag:
+            return True
+        if e.get("on_by_default"):
+            # Ships unless explicitly switched off. Anything other than a
+            # literal "false" keeps it, so a typo can't silently strip the
+            # default model set off every pod.
+            return (env.get(flag) or "").strip().lower() != "false"
+        return flag in enabled
+
     kept = {
         n: e for n, e in registry.items()
-        if ("flag" not in e or e["flag"] in enabled)
+        if flag_ok(e)
         and ("disable_flag" not in e or e["disable_flag"] not in enabled)
         and (not e.get("gated") or has_token)
     }
@@ -147,6 +166,28 @@ def selftest() -> None:
     assert set(select(creg, {"download_ltx25": "true"}, False)) == {"ltx25_open.safetensors"}
     assert set(select(creg, {"download_ltx25": "true", "HF_TOKEN": "hf_x"}, False)) == {
         "ltx25.safetensors", "ltx25_open.safetensors"}
+
+    # on_by_default: a positively-named flag that ships unless explicitly
+    # turned off (download_ltx23). Opt-in flags need "true"; this one needs
+    # "false" to opt OUT, so an untouched pod keeps the LTX-2.3 set.
+    breg = {
+        "always.safetensors": {"url": "https://h/a", "subdir": "vae"},
+        "ltx23.safetensors": {"url": "https://h/23", "subdir": "checkpoints",
+                              "flag": "download_ltx23", "on_by_default": True},
+        "optin.safetensors": {"url": "https://h/o", "subdir": "checkpoints",
+                              "flag": "download_ltx25"},
+    }
+    assert set(select(breg, {}, False)) == {"always.safetensors", "ltx23.safetensors"}
+    assert set(select(breg, {"download_ltx23": "true"}, False)) == {
+        "always.safetensors", "ltx23.safetensors"}
+    assert set(select(breg, {"download_ltx23": "false"}, False)) == {"always.safetensors"}
+    assert set(select(breg, {"download_ltx23": "FALSE"}, False)) == {"always.safetensors"}
+    # a nonsense value must not silently drop the default set
+    assert set(select(breg, {"download_ltx23": "no"}, False)) == {
+        "always.safetensors", "ltx23.safetensors"}
+    # opt-in flags are unaffected by the new semantic
+    assert set(select(breg, {"download_ltx25": "true"}, False)) == {
+        "always.safetensors", "ltx23.safetensors", "optin.safetensors"}
 
     # min_size_mb: entries smaller than the 10 MB default (e.g. the 3.8 MB
     # LTX-2.5 duration head) must be skippable once present, not re-queued
