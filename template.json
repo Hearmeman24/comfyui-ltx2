@@ -1,0 +1,32 @@
+{
+  "template_repo": "https://github.com/Hearmeman24/comfyui-ltx2.git",
+  "branch": "main",
+  "provisioning_mode": "registry",
+  "flags": {
+    "download_ltx23": { "copy": ["."], "default": true },
+    "download_ltx2_19b": { "copy": ["legacy_19b"], "default": false },
+    "download_ltx25": { "copy": ["LTX2.5"], "default": false }
+  },
+  "variant_env": "lightweight_fp8",
+  "swap_groups": [
+    {
+      "env": "lightweight_fp8",
+      "default": "false",
+      "flags": ["download_ltx2_19b"],
+      "profiles": {
+        "false": { "dit_19b": "ltx-2-19b-dev.safetensors" },
+        "true": { "dit_19b": "ltx-2-19b-dev-fp8.safetensors" }
+      }
+    }
+  ],
+  "models_symlink": false,
+  "custom_nodes": {
+    "target": "image",
+    "repos": [
+      "https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI.git",
+      "https://github.com/alisson-anjos/ComfyUI-BFSNodes.git",
+      "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git"
+    ]
+  },
+  "sage": true
+}

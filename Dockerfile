@@ -1,78 +1,38 @@
-# Use multi-stage build with caching optimizations
-FROM nvidia/cuda:12.8.1-cudnn-devel-ubuntu24.04 AS base
-
-# Consolidated environment variables
-ENV DEBIAN_FRONTEND=noninteractive \
-   PIP_PREFER_BINARY=1 \
-   PYTHONUNBUFFERED=1 \
-   CMAKE_BUILD_PARALLEL_LEVEL=8 \
-   HF_XET_HIGH_PERFORMANCE=1
-
-RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
-        python3.12 python3.12-venv python3.12-dev \
-        python3-pip \
-        curl ffmpeg ninja-build git aria2 git-lfs wget vim \
-        libgl1 libglib2.0-0 build-essential gcc && \
-    \
-    # make Python3.12 the default python & pip
-    ln -sf /usr/bin/python3.12 /usr/bin/python && \
-    ln -sf /usr/bin/pip3 /usr/bin/pip && \
-    \
-    python3.12 -m venv /opt/venv && \
-    \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Use the virtual environment
-ENV PATH="/opt/venv/bin:$PATH"
-
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install torch torchvision torchaudio \
-        --index-url https://download.pytorch.org/whl/cu128
-
-# Core Python tooling
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install packaging setuptools wheel
-
-# Runtime libraries
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install pyyaml gdown triton jupyterlab jupyterlab-lsp \
-        jupyter-server jupyter-server-terminals \
-        ipykernel jupyterlab_code_formatter
-
-# huggingface_hub (provides hf_hub_download + bundled hf_xet accelerator) is
-# imported by src/hf_download_manager.py. The standalone `hf` CLI is installed
-# separately for manual use / xet acceleration.
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --upgrade huggingface_hub hf_xet
-RUN curl -LsSf https://hf.co/cli/install.sh | bash
-
-# ------------------------------------------------------------
-# ComfyUI install — direct clone + pip install. Replaces comfy-cli,
-# which used to clone the same repo and create a private .venv we then
-# deleted anyway. Simpler, fewer indirection layers, no ~7 GB .venv.
+# syntax=docker/dockerfile:1
+# ============================================================================
+# comfyui-ltx2 template image, built FROM the shared base
+# (hearmeman/comfyui-base, comfyui-runtime/base/Dockerfile).
 #
-# The ADD below fetches the current master ref from the GitHub API on
-# every build; its content changes whenever ComfyUI master moves, which
-# invalidates the clone layer. Without it, docker_layer_caching would
-# keep serving the ComfyUI baked into the previous build's cache.
-# ------------------------------------------------------------
-ADD https://api.github.com/repos/comfyanonymous/ComfyUI/git/refs/heads/master /comfyui-master-ref.json
-RUN --mount=type=cache,target=/root/.cache/pip \
-    git clone --depth=1 https://github.com/comfyanonymous/ComfyUI.git /ComfyUI \
-    && pip install -r /ComfyUI/requirements.txt
+# The base owns: python 3.12 + /opt/venv (on PATH), the pinned torch trio +
+# /torch-constraint.txt applied via ENV PIP_CONSTRAINT, pip tooling, pyyaml/
+# gdown/triton/jupyterlab, huggingface_hub + hf_xet, opencv-python, ComfyUI
+# pinned at COMFYUI_REF with /comfyui-approved-ref, ComfyUI-Manager, both
+# SageAttention wheels under /opt/sage/, the CivitAI downloader, and
+# ENV ORT_INDEX_ARGS (the per-CUDA-variant onnxruntime index nuance).
+#
+# This layer adds ONLY the ltx2 node set, the onnxruntime-gpu reassert, and
+# the entrypoint. BASE_IMAGE is passed by CI from pins.json's "base_image";
+# the default below mirrors that pin so a plain build stays coherent.
+# ============================================================================
+ARG BASE_IMAGE=hearmeman/comfyui-base:cu130-comfy0.32.0-torch2.11.0
+FROM ${BASE_IMAGE}
 
-FROM base AS final
-# Make sure to use the virtual environment here too
-ENV PATH="/opt/venv/bin:$PATH"
-RUN pip install opencv-python
-
-# Same cache-bust trick as ComfyUI core, for the one custom node whose version
-# actually gates a model release: LTX-2.5 support landed in ComfyUI-LTXVideo on
-# 2026-08-11 (example_workflows/2.5/). Without this, docker_layer_caching serves
-# the cached clone layer and a "rebuild" quietly ships the previous node.
+# Cache-bust for the one custom node whose version actually gates a model
+# release: LTX-2.5 support landed in ComfyUI-LTXVideo on 2026-08-11
+# (example_workflows/2.5/). The ADD fetches the current master ref from the
+# GitHub API on every build, invalidating the clone-loop layer whenever
+# upstream moves. Without it, docker_layer_caching serves the cached clone
+# layer and a "rebuild" quietly ships the previous node.
 ADD https://api.github.com/repos/Lightricks/ComfyUI-LTXVideo/git/refs/heads/master /ltxvideo-master-ref.json
+
+# The ltx2 node set: today's 21 packs plus ComfyUI-BFSNodes and
+# ComfyUI-VideoHelperSuite (spec D7: previously boot-cloned only, now baked so
+# first boot skips two clones + pip installs). All three HEAD-trackers
+# (WhatDreamsCost-ComfyUI, BFSNodes, VHS) are ALSO in template.json's
+# custom_nodes.repos: the runtime's clone loop finds the baked dir and takes
+# its `git pull --ff-only` branch (comfyui-runtime/src/start.sh:450-453), so
+# they keep tracking upstream HEAD at boot with no dual clone.
+# PIP_CONSTRAINT (base-owned) applies to every requirements install below.
 RUN for repo in \
     https://github.com/ssitu/ComfyUI_UltimateSDUpscale.git \
     https://github.com/kijai/ComfyUI-KJNodes.git \
@@ -94,7 +54,9 @@ RUN for repo in \
     https://github.com/chrisgoringe/cg-use-everywhere.git \
     https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI.git \
     https://github.com/Lightricks/ComfyUI-LTXVideo.git \
-    https://github.com/M1kep/ComfyLiterals.git; \
+    https://github.com/M1kep/ComfyLiterals.git \
+    https://github.com/alisson-anjos/ComfyUI-BFSNodes.git \
+    https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git; \
     do \
         cd /ComfyUI/custom_nodes; \
         repo_dir=$(basename "$repo" .git); \
@@ -111,25 +73,22 @@ RUN for repo in \
         fi; \
     done
 
-# Force GPU onnxruntime. Several custom node requirements.txt files
-# pull in plain `onnxruntime` (CPU) which shadows our GPU install
-# because both packages provide the same `onnxruntime` Python module —
-# last install wins. Reinstalling after the clone loop guarantees the
-# image ships with the CUDA provider available.
+# Force GPU onnxruntime. Several node requirements pull in plain `onnxruntime`
+# (CPU), which shadows the GPU install because both provide the same
+# `onnxruntime` module and last install wins. This reassert therefore comes
+# AFTER the clone loop, and no later RUN may pip install anything
+# (comfyui-runtime base Dockerfile, onnxruntime ordering trap). ORT_INDEX_ARGS
+# is base-owned data: the Azure onnxruntime-cuda-12 index on cu128, empty on
+# cu130 where PyPI's onnxruntime-gpu links CUDA 13.
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip uninstall -y onnxruntime onnxruntime-gpu 2>/dev/null || true; \
-    pip install onnxruntime-gpu
+    pip install onnxruntime-gpu $ORT_INDEX_ARGS
 
-# ComfyUI-Manager. Cloned as lowercase `comfyui-manager` so it loads
-# after the other custom_nodes (ComfyUI loads alphabetically — capital
-# letters first), which is required for Manager to detect IMPORT FAILED
-# states in earlier-loaded nodes.
-RUN --mount=type=cache,target=/root/.cache/pip \
-    git clone --depth=1 https://github.com/ltdrdata/ComfyUI-Manager.git \
-        /ComfyUI/custom_nodes/comfyui-manager \
-    && if [ -f /ComfyUI/custom_nodes/comfyui-manager/requirements.txt ]; then \
-         pip install -r /ComfyUI/custom_nodes/comfyui-manager/requirements.txt; \
-       fi
+# Build-time gate: the shipped image must expose the CUDA provider. Provider
+# enumeration is import-only and works with no GPU present, so this fails the
+# CI build, not a customer pod. The runtime repo's CI greps template
+# Dockerfiles for this CUDAExecutionProvider assertion.
+RUN python3 -c "import onnxruntime; p = onnxruntime.get_available_providers(); assert 'CUDAExecutionProvider' in p, p; print('onnxruntime providers OK:', p)"
 
 COPY src/start_script.sh /start_script.sh
 RUN chmod +x /start_script.sh

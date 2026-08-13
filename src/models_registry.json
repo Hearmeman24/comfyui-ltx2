@@ -150,6 +150,12 @@
     "subdir": "vae",
     "flag": "download_ltx2_19b"
   },
+  "1x-ITF-SkinDiffDetail-Lite-v1.pth": {
+    "url": "https://huggingface.co/Hearmeman/comfyui-template-assets/resolve/main/upscale_models/1x-ITF-SkinDiffDetail-Lite-v1.pth",
+    "subdir": "upscale_models",
+    "flag": "download_ltx2_19b",
+    "upstream_url": "https://objectstorage.us-phoenix-1.oraclecloud.com/n/ax6ygfvpvzka/b/open-modeldb-files/o/1x-ITF-SkinDiffDetail-Lite-v1.pth"
+  },
   "ltx-2.3-22b-distilled-lora-384-1.1.safetensors": {
     "url": "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-22b-distilled-lora-384-1.1.safetensors",
     "subdir": "loras",
