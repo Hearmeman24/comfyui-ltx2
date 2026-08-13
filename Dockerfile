@@ -25,46 +25,29 @@ FROM ${BASE_IMAGE}
 # layer and a "rebuild" quietly ships the previous node.
 ADD https://api.github.com/repos/Lightricks/ComfyUI-LTXVideo/git/refs/heads/master /ltxvideo-master-ref.json
 
-# The ltx2 node set: today's 21 packs plus ComfyUI-BFSNodes and
-# ComfyUI-VideoHelperSuite (spec D7: previously boot-cloned only, now baked so
-# first boot skips two clones + pip installs). All three HEAD-trackers
-# (WhatDreamsCost-ComfyUI, BFSNodes, VHS) are ALSO in template.json's
-# custom_nodes.repos: the runtime's clone loop finds the baked dir and takes
-# its `git pull --ff-only` branch (comfyui-runtime/src/start.sh:450-453), so
-# they keep tracking upstream HEAD at boot with no dual clone.
+# The ltx2 node set, culled 2026-08-13 to the packs the 10 shipped workflows
+# actually resolve nodes from, plus the Tier 1 packs kept on every template
+# (rgthree-comfy for its UI layer, ComfyUI-Openrouter_node for LLM prompt
+# assist; its API key is user-supplied via widget, LLM_KEY, or a JSON file in
+# the node dir, never baked). The three HEAD-trackers (WhatDreamsCost-ComfyUI,
+# BFSNodes, VHS) are ALSO in template.json's custom_nodes.repos: the runtime's
+# clone loop finds the baked dir and takes its `git pull --ff-only` branch
+# (comfyui-runtime/src/start.sh:450-453), so they keep tracking upstream HEAD
+# at boot with no dual clone.
 # PIP_CONSTRAINT (base-owned) applies to every requirements install below.
 RUN for repo in \
-    https://github.com/ssitu/ComfyUI_UltimateSDUpscale.git \
     https://github.com/kijai/ComfyUI-KJNodes.git \
     https://github.com/rgthree/rgthree-comfy.git \
-    https://github.com/JPS-GER/ComfyUI_JPS-Nodes.git \
-    https://github.com/Jordach/comfy-plasma.git \
-    https://github.com/ltdrdata/ComfyUI-Impact-Pack.git \
-    https://github.com/ClownsharkBatwing/RES4LYF.git \
-    https://github.com/yolain/ComfyUI-Easy-Use.git \
-    https://github.com/WASasquatch/was-node-suite-comfyui.git \
-    https://github.com/theUpsider/ComfyUI-Logic.git \
     https://github.com/cubiq/ComfyUI_essentials.git \
-    https://github.com/chrisgoringe/cg-image-picker.git \
-    https://github.com/chflame163/ComfyUI_LayerStyle.git \
-    https://github.com/ltdrdata/ComfyUI-Impact-Subpack.git \
-    https://github.com/Jonseed/ComfyUI-Detail-Daemon.git \
-    https://github.com/chflame163/ComfyUI_LayerStyle_Advance.git \
-    https://github.com/bash-j/mikey_nodes.git \
-    https://github.com/chrisgoringe/cg-use-everywhere.git \
     https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI.git \
     https://github.com/Lightricks/ComfyUI-LTXVideo.git \
-    https://github.com/M1kep/ComfyLiterals.git \
     https://github.com/alisson-anjos/ComfyUI-BFSNodes.git \
-    https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git; \
+    https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git \
+    https://github.com/gabe-init/ComfyUI-Openrouter_node.git; \
     do \
         cd /ComfyUI/custom_nodes; \
         repo_dir=$(basename "$repo" .git); \
-        if [ "$repo" = "https://github.com/ssitu/ComfyUI_UltimateSDUpscale.git" ]; then \
-            git clone --recursive "$repo"; \
-        else \
-            git clone "$repo"; \
-        fi; \
+        git clone "$repo"; \
         if [ -f "/ComfyUI/custom_nodes/$repo_dir/requirements.txt" ]; then \
             pip install -r "/ComfyUI/custom_nodes/$repo_dir/requirements.txt"; \
         fi; \
