@@ -4,9 +4,7 @@ executors:
   docker-dind:
     # Mirrors comfyui-wan: docker_layer_caching preserves the BuildKit cache
     # volume across builds on the same node, and the buildcache registry tag
-    # (below) seeds --cache-from. Together they keep the torch nightly layer
-    # cached so it is not re-resolved every build — the only reason the
-    # identical `pip install --pre torch ...` line survives nightly drift.
+    # (below) seeds --cache-from.
     machine:
       image: ubuntu-2404:current
       docker_layer_caching: true
@@ -14,6 +12,10 @@ executors:
     environment:
       DOCKER_BUILDKIT: 1
       COMPOSE_DOCKER_CLI_BUILD: 1
+
+  python:
+    docker:
+      - image: cimg/python:3.12
 
 commands:
   notify-flowbot:
@@ -36,13 +38,58 @@ commands:
               -d "{\"message\": \"<< parameters.message >>\", \"source\": \"circleci\"}"
 
 jobs:
-  validate_models:
-    docker:
-      - image: cimg/python:3.11
+  # Cheap static checks, mirroring comfyui-runtime's verify job: shell syntax,
+  # shellcheck, python byte-compile, JSON validity. No contexts needed.
+  verify:
+    executor: python
     steps:
       - checkout
       - run:
-          name: Validate model registry (URL reachability + workflow JSON)
+          name: Install shellcheck
+          command: |
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq shellcheck
+      - run:
+          name: Shell syntax (bash -n)
+          command: |
+            find src tools -name '*.sh' -print0 | xargs -0 -r -n1 bash -n
+      - run:
+          name: shellcheck (severity=error)
+          command: |
+            find src tools -name '*.sh' -print0 | xargs -0 -r shellcheck --severity=error
+      - run:
+          name: Python byte-compile
+          command: |
+            find src tools -name '*.py' -print0 | xargs -0 -r python3 -m py_compile
+      - run:
+          name: JSON parse every .json in the repo
+          command: |
+            find . -path ./.git -prune -o -name '*.json' -print0 | xargs -0 -r -n1 python3 -m json.tool > /dev/null
+      - run:
+          name: onnxruntime CUDA-provider gate in Dockerfile
+          command: |
+            # The runtime repo's equivalent gate only scans its own tree, so
+            # this repo must carry the check itself: the Dockerfile asserts
+            # CUDAExecutionProvider after installing onnxruntime-gpu (silent
+            # CPU inference otherwise), and no pip install may follow the
+            # assert, or it could replace onnxruntime behind it. awk skips
+            # comment lines (they legitimately mention "pip install").
+            if ! grep -q 'CUDAExecutionProvider' Dockerfile; then
+              echo "FAIL: Dockerfile has no CUDAExecutionProvider assertion (onnxruntime gate)"
+              exit 1
+            fi
+            if ! awk '/^[[:space:]]*#/ { next } /pip3? install/ { p = NR } /CUDAExecutionProvider/ { a = NR } END { exit (p > a) }' Dockerfile; then
+              echo "FAIL: Dockerfile runs pip install after the CUDAExecutionProvider assertion (ordering trap: a later install can swap onnxruntime out from under the assert)"
+              exit 1
+            fi
+            echo "OK: Dockerfile carries the CUDAExecutionProvider assertion, with no pip install after it"
+
+  validate_models:
+    executor: python
+    steps:
+      - checkout
+      - run:
+          name: Validate models via the shared runtime validator (pinned by pins.json)
           command: python3 tools/validate_models.py
 
   build_and_push:
@@ -64,6 +111,17 @@ jobs:
             IMG="docker.io/$DOCKERHUB_USER/comfyui-ltx-template"
             CACHE_TAG="buildcache"
 
+            # pins.json owns the base image (CONTRACTS section 6: consumed by
+            # CI as a build arg at vN tag time). Fail loudly rather than fall
+            # through to the Dockerfile's ARG default: a silent fallback would
+            # make a base bump in pins.json look applied while being ignored.
+            BASE_IMAGE=$(python3 -c "import json; print(json.load(open('pins.json')).get('base_image', ''))")
+            if [ -z "$BASE_IMAGE" ]; then
+              echo "FATAL: could not read base_image from pins.json (missing file or empty key)"
+              exit 1
+            fi
+            echo "Building FROM ${BASE_IMAGE}"
+
             # Seed BuildKit from the previous build's cache image, if any.
             # Best-effort: the first build (no prior cache) is a no-op miss.
             docker pull "${IMG}:${CACHE_TAG}" || true
@@ -74,6 +132,7 @@ jobs:
               --progress=plain \
               --cache-from "${IMG}:${CACHE_TAG}" \
               --build-arg BUILDKIT_INLINE_CACHE=1 \
+              --build-arg BASE_IMAGE="${BASE_IMAGE}" \
               -t "${IMG}:${TAG}" .
 
             # Push the version tag (what users pull).
@@ -87,7 +146,7 @@ jobs:
             touch /tmp/build_success
 
       - run:
-          name: Notify FlowBot — build complete
+          name: Notify FlowBot - build complete
           when: always
           command: |
             TAG="${CIRCLE_TAG:-latest}"
@@ -114,14 +173,21 @@ workflows:
       not:
         equal: [scheduled_pipeline, << pipeline.trigger_source >>]
     jobs:
-      # Runs on every branch push and on version tags — catches dead registry
-      # URLs and broken workflow JSON before a build is ever attempted.
+      # Both gates run on every branch push and on version tags (a tag-filtered
+      # job's dependencies must themselves run on tags): verify catches broken
+      # shell/python/JSON, validate_models catches dead registry URLs and
+      # workflow drift, before a build is ever attempted.
+      - verify:
+          filters:
+            tags:
+              only: /.*/
       - validate_models:
           filters:
             tags:
               only: /.*/
       - build_and_push:
           requires:
+            - verify
             - validate_models
           context:
             - docker-hub
