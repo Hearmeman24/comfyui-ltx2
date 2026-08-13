@@ -108,6 +108,11 @@ jobs:
 workflows:
   version: 2
   build_on_tag:
+    # Skipped for the weekly scheduled pipeline, which exists only to run
+    # weekly_url_validation; pushes and tags are unaffected.
+    when:
+      not:
+        equal: [scheduled_pipeline, << pipeline.trigger_source >>]
     jobs:
       # Runs on every branch push and on version tags — catches dead registry
       # URLs and broken workflow JSON before a build is ever attempted.
@@ -126,3 +131,19 @@ workflows:
               only: /^v[0-9]+(\.[0-9]+)*$/  # run on tags like v5 or v1.2.3
             branches:
               ignore: /.*/
+
+  # Weekly URL-rot canary, Mondays 06:00 UTC. validate_models only ever fires
+  # on a push here, so a registry URL that 404s upstream leaves CI green over
+  # a broken template until the next edit. This org ("Hearmemanai") is a
+  # standalone (non-VCS) CircleCI org: the in-config `triggers:` form silently
+  # never fires and POST /api/v2/project/:slug/schedule is rejected, so the
+  # schedule lives in a pipeline-definition trigger created once via
+  # POST /api/v2/projects/:project_uuid/pipeline-definitions/:definition_id/triggers
+  # (provider "schedule", 2026-08-13). This workflow gates on that pipeline's
+  # trigger_source; build_on_tag gates on the negation, so the weekly run
+  # executes only validate_models and never touches Docker Hub.
+  weekly_url_validation:
+    when:
+      equal: [scheduled_pipeline, << pipeline.trigger_source >>]
+    jobs:
+      - validate_models
