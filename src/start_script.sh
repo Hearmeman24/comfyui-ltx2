@@ -60,10 +60,17 @@ if [ -z "$RUNTIME_REF" ]; then
     RUNTIME_REF=main
 fi
 
+# Tracks whether THIS boot created the runtime checkout. It decides which
+# fallback message is true when the pinned-ref fetch fails every retry: a kept
+# pre-existing checkout is potentially STALE, but a fresh clone left at main
+# HEAD is UNPINNED and NEWER than the pin.
+runtime_fresh_clone=""
+
 sync_runtime() {
     if [ ! -d "$RUNTIME_DIR/.git" ]; then
         rm -rf "$RUNTIME_DIR"
         git clone "$RUNTIME_URL" "$RUNTIME_DIR" || return 1
+        runtime_fresh_clone=1
     fi
     git -C "$RUNTIME_DIR" fetch origin "$RUNTIME_REF" &&
     git -C "$RUNTIME_DIR" reset --hard FETCH_HEAD
@@ -78,7 +85,11 @@ done
 
 if [ -z "$ok" ]; then
     if [ -d "$RUNTIME_DIR/.git" ]; then
-        echo "⚠️  Could not sync the runtime to $RUNTIME_REF. Booting with the existing on-disk runtime copy (may be stale)."
+        if [ -n "$runtime_fresh_clone" ]; then
+            echo "⚠️  Cloned the runtime but could not fetch the pinned ref $RUNTIME_REF. Booting the runtime's main HEAD: UNPINNED and NEWER than the pin."
+        else
+            echo "⚠️  Could not sync the runtime to $RUNTIME_REF. Booting with the existing on-disk runtime copy (may be stale)."
+        fi
     else
         echo "❌ Could not clone $RUNTIME_URL after retries and no local copy exists. Aborting." >&2
         exit 1
