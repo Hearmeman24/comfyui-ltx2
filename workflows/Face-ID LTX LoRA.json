@@ -4737,8 +4737,8 @@
         },
         "models": [
           {
-            "name": "ltx-2.3-spatial-upscaler-x2-1.0.safetensors",
-            "url": "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-spatial-upscaler-x2-1.0.safetensors",
+            "name": "ltx-2.3-spatial-upscaler-x2-1.1.safetensors",
+            "url": "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-spatial-upscaler-x2-1.1.safetensors",
             "directory": "latent_upscale_models"
           }
         ],
@@ -4797,8 +4797,8 @@
         },
         "models": [
           {
-            "name": "ltx-2.3-22b-distilled-lora-384.safetensors",
-            "url": "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-22b-distilled-lora-384.safetensors",
+            "name": "Best_FaceID_v1.0_LoRA.safetensors",
+            "url": "https://huggingface.co/Alissonerdx/LTX-Best-Face-ID/resolve/main/Best_FaceID_v1.0_LoRA.safetensors",
             "directory": "loras"
           }
         ],
@@ -5190,9 +5190,9 @@
         },
         "models": [
           {
-            "name": "ltx-2.3-22b-distilled-lora-384.safetensors",
-            "url": "https://huggingface.co/Lightricks/LTX-2.3/resolve/main/ltx-2.3-22b-distilled-lora-384.safetensors",
-            "directory": "loras"
+            "name": "ltx-2.3-22b-distilled-lora-dynamic_fro09_avg_rank_105_bf16.safetensors",
+            "url": "https://huggingface.co/Kijai/LTX2.3_comfy/resolve/main/loras/ltx-2.3-22b-distilled-lora-dynamic_fro09_avg_rank_105_bf16.safetensors",
+            "directory": "loras/ltx2"
           }
         ],
         "enableTabs": false,
