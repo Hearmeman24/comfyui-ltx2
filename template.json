@@ -4,21 +4,12 @@
   "provisioning_mode": "registry",
   "flags": {
     "download_ltx23": { "copy": ["."], "default": true },
-    "download_ltx2_19b": { "copy": ["legacy_19b"], "default": false },
     "download_ltx25": { "copy": ["LTX2.5"], "default": false }
   },
-  "variant_env": "lightweight_fp8",
-  "swap_groups": [
-    {
-      "env": "lightweight_fp8",
-      "default": "false",
-      "flags": ["download_ltx2_19b"],
-      "profiles": {
-        "false": { "dit_19b": "ltx-2-19b-dev.safetensors" },
-        "true": { "dit_19b": "ltx-2-19b-dev-fp8.safetensors" }
-      }
-    }
-  ],
+  "deprecated_flags": {
+    "download_ltx2_19b": "LTX-2 19B is retired. Use download_ltx23 (on by default) or download_ltx25. Models already on your network volume are untouched; they simply stop being downloaded onto new pods.",
+    "lightweight_fp8": "lightweight_fp8 only ever switched the 19B model between full and fp8, and 19B is retired. It now does nothing. LTX-2.3 ships fp8 already."
+  },
   "models_symlink": false,
   "custom_nodes": {
     "target": "image",

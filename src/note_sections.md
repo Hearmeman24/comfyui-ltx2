@@ -9,8 +9,6 @@ three sets of workflows:
 - LTX 2.5 is the newest model, with text to video and image to video
   workflows. It is off by default because Lightricks asks you to accept
   a license first. The steps are below.
-- Legacy 19b is the older LTX 2 model, with text to video, image to
-  video, canny control and depth control workflows. Off by default.
 
 The 2.3 set also includes the IC LoRA collection: effect LoRAs for
 things like HDR, colorization, deblur and day to night. Most of these
@@ -25,9 +23,9 @@ you deploy, or edit the variables on this pod and restart it.
 |---|---|---|
 | download_ltx23 | true | The LTX 2.3 set. Set to false to skip it. |
 | download_ltx25 | false | Set to true to download the LTX 2.5 set. Needs HF_TOKEN. |
-| download_ltx2_19b | false | Set to true to download the legacy 19b set. |
+| download_ltx2_19b | retired | The 19b set no longer ships. Leaving it set is harmless. |
 | disable_ic_loras | false | Set to true to skip the IC LoRA collection. |
-| lightweight_fp8 | false | Set to true to use the smaller FP8 version of the 19b model. |
+| lightweight_fp8 | retired | Only ever applied to the 19b model, which is retired. |
 | HF_TOKEN | empty | Your Hugging Face token. Unlocks the gated models. |
 
 ## How to unlock LTX 2.5
