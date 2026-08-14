@@ -1,7 +1,7 @@
 ## What is in this template
 
 This template runs the LTX video models by Lightricks. It comes with
-three sets of workflows:
+two sets of workflows:
 
 - LTX 2.3 is the main set: text to video, image to video, the LTX
   Director storyboard workflow, motion tracking and Face ID. It
@@ -23,9 +23,7 @@ you deploy, or edit the variables on this pod and restart it.
 |---|---|---|
 | download_ltx23 | true | The LTX 2.3 set. Set to false to skip it. |
 | download_ltx25 | false | Set to true to download the LTX 2.5 set. Needs HF_TOKEN. |
-| download_ltx2_19b | retired | The 19b set no longer ships. Leaving it set is harmless. |
 | disable_ic_loras | false | Set to true to skip the IC LoRA collection. |
-| lightweight_fp8 | retired | Only ever applied to the 19b model, which is retired. |
 | HF_TOKEN | empty | Your Hugging Face token. Unlocks the gated models. |
 
 ## How to unlock LTX 2.5
