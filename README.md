@@ -2,7 +2,7 @@
 
 # ComfyUI + LTX-2.3 — RunPod template
 
-One-click **ComfyUI + LTX-2.3** audio-video generation. The bundled LTX Director workflow and the full LTX-2.3 model set (incl. the IC-LoRA collection) provision on first boot; **LTX-2.5** and the legacy **LTX-2 19b** set each stay behind one opt-in flag.
+One-click **ComfyUI + LTX-2.3** audio-video generation. The bundled LTX Director workflow and the full LTX-2.3 model set (incl. the IC-LoRA collection) provision on first boot; **LTX-2.5** stays behind one opt-in flag.
 
 > Docker image: `comfyui-ltx-template:v9`
 
@@ -18,8 +18,8 @@ Models are registry-driven (`src/models_registry.json`), fetched in parallel ove
 | `download_ltx23` | `true` | The **LTX-2.3** base set + its four workflows. Set `false` to skip them (e.g. running LTX-2.5 only). Only a literal `false` turns it off. |
 | `download_ltx25` | `false` | Opt in to the **LTX-2.5** model set (~52 GB, gated — needs `HF_TOKEN`). See below. |
 | `disable_ic_loras` | `false` | `true` skips the LTX-2.3 IC-LoRA collection (13 LoRAs, ~10 GB, on by default). |
-| `download_ltx2_19b` | `false` | Opt in to the legacy LTX-2 19b model set + its `legacy_19b/` workflows (T2V, I2V, canny, depth). |
-| `lightweight_fp8` | `false` | **19b only** — use the FP8 19b checkpoint and rewrite the 19b workflows to match. |
+| `download_ltx2_19b` | — | **Retired.** LTX-2 19B no longer ships. Still accepted, so an existing pod keeps booting; it downloads nothing. Use `download_ltx23` or `download_ltx25`. Models already on your volume are untouched. |
+| `lightweight_fp8` | — | **Retired** with 19B; it only ever chose between the full and FP8 19B checkpoints. LTX-2.3 ships FP8 already. |
 | `civitai_token` | — | CivitAI API token (only needed for the `*_IDS_TO_DOWNLOAD` vars). |
 | `LORAS_IDS_TO_DOWNLOAD` | — | Comma-separated CivitAI **version IDs** → `models/loras/`. |
 | `SDXL_MODEL_IDS_TO_DOWNLOAD` | — | Comma-separated CivitAI **version IDs** → `models/checkpoints/`. |
@@ -79,7 +79,6 @@ Each repo is `huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-<Name>`:
 ## 🧩 Workflows & Nodes
 
 - **LTX Director Example Workflow (Fixed)** — runs on the default set (from the WhatDreamsCost pack).
-- Legacy `legacy_19b/` workflows ship only with `download_ltx2_19b=true`.
 
 Nodes: ComfyUI-Manager + [ComfyUI-LTXVideo](https://github.com/Lightricks/ComfyUI-LTXVideo), WhatDreamsCost, KJNodes, RES4LYF, Impact-Pack (+ Subpack), rgthree, Easy-Use, essentials, LayerStyle (+ Advance), Detail-Daemon, UltimateSDUpscale.
 
