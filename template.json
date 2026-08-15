@@ -3,8 +3,18 @@
   "branch": "main",
   "provisioning_mode": "registry",
   "flags": {
-    "download_ltx23": { "copy": ["."], "default": true },
-    "download_ltx25": { "copy": ["LTX2.5"], "default": false }
+    "download_ltx23": {
+      "copy": [
+        "."
+      ],
+      "default": true
+    },
+    "download_ltx25": {
+      "copy": [
+        "LTX2.5"
+      ],
+      "default": false
+    }
   },
   "deprecated_flags": {
     "download_ltx2_19b": "LTX-2 19B is retired. Use download_ltx23 (on by default) or download_ltx25. Models already on your network volume are untouched; they simply stop being downloaded onto new pods.",
@@ -16,7 +26,8 @@
     "repos": [
       "https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI.git",
       "https://github.com/alisson-anjos/ComfyUI-BFSNodes.git",
-      "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git"
+      "https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git",
+      "https://github.com/Hearmeman24/ComfyUI-HearmemanAI-Upscale.git"
     ]
   },
   "sage": true
