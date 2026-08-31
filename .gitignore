@@ -1,5 +1,6 @@
 .history/
 .claude/
+/CLAUDE.md
 /.idea/
 /docs/
 __pycache__/
