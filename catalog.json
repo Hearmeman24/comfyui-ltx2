@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "workflows": [
+    {
+      "id": "ltx-2-3-face-id-video",
+      "file": "workflows/Face-ID LTX LoRA.json",
+      "title": "LTX 2.3 Face ID",
+      "description": "Guide video generation with Face ID conditioning and a reference image.",
+      "model": "LTX 2.3",
+      "output": "Video",
+      "tags": [
+        "LTX 2.3",
+        "image-reference",
+        "identity",
+        "LoRA",
+        "upscale",
+        "audio",
+        "ComfyUI"
+      ],
+      "status": "published",
+      "publishedAt": "2026-07-07T11:27:07Z",
+      "notes": [
+        "Replace prompt placeholders and supply your own input images, video or audio before running."
+      ]
+    },
+    {
+      "id": "ltx-2-3-motion-tracking",
+      "file": "workflows/IC_LORA_Motion_Tracking.json",
+      "title": "LTX 2.3 motion tracking",
+      "description": "Guide motion with track controls and the LTX 2.3 motion-tracking LoRA.",
+      "model": "LTX 2.3",
+      "output": "Video",
+      "tags": [
+        "LTX 2.3",
+        "image-to-video",
+        "motion-control",
+        "LoRA",
+        "ComfyUI"
+      ],
+      "status": "published",
+      "publishedAt": "2026-06-19T10:49:26Z",
+      "notes": [
+        "Replace prompt placeholders and supply your own input images, video or audio before running."
+      ]
+    },
+    {
+      "id": "ltx-2-3-director",
+      "file": "workflows/LTX_Director_2_Workflow_Hotfix.json",
+      "title": "LTX 2.3 Director",
+      "description": "Use Director controls and reference guides to shape an LTX 2.3 video.",
+      "model": "LTX 2.3",
+      "output": "Video",
+      "tags": [
+        "LTX 2.3",
+        "video-direction",
+        "image-reference",
+        "upscale",
+        "audio",
+        "ComfyUI"
+      ],
+      "status": "published",
+      "publishedAt": "2026-06-19T04:56:59Z",
+      "notes": [
+        "Replace prompt placeholders and supply your own input images, video or audio before running."
+      ]
+    },
+    {
+      "id": "ltx-2-3-text-image-to-video",
+      "file": "workflows/LTX2.3-T2V_I2V.json",
+      "title": "LTX 2.3 text and image to video",
+      "description": "Generate a video from text or a starting image, with a latent-upscaling stage.",
+      "model": "LTX 2.3",
+      "output": "Video",
+      "tags": [
+        "LTX 2.3",
+        "text-to-video",
+        "image-to-video",
+        "upscale",
+        "audio",
+        "ComfyUI"
+      ],
+      "status": "published",
+      "publishedAt": "2026-06-19T10:49:26Z",
+      "notes": [
+        "Replace prompt placeholders and supply your own input images, video or audio before running."
+      ]
+    },
+    {
+      "id": "ltx-2-5-image-to-video",
+      "file": "workflows/LTX2.5/video_ltx2_5_i2v.json",
+      "title": "LTX 2.5 image to video",
+      "description": "Animate a starting image with LTX 2.5, generated audio and latent upscaling.",
+      "model": "LTX 2.5",
+      "output": "Video",
+      "tags": [
+        "LTX 2.5",
+        "image-to-video",
+        "audio",
+        "upscale",
+        "ComfyUI"
+      ],
+      "status": "published",
+      "publishedAt": "2026-08-11T20:12:57Z",
+      "notes": [
+        "Replace prompt placeholders and supply your own input images, video or audio before running.",
+        "These model files require Hugging Face sign-in and acceptance of the publisher's access terms before downloading."
+      ]
+    },
+    {
+      "id": "ltx-2-5-text-to-video",
+      "file": "workflows/LTX2.5/video_ltx2_5_t2v.json",
+      "title": "LTX 2.5 text to video",
+      "description": "Generate video and audio from a scene prompt with LTX 2.5 and latent upscaling.",
+      "model": "LTX 2.5",
+      "output": "Video",
+      "tags": [
+        "LTX 2.5",
+        "text-to-video",
+        "audio",
+        "upscale",
+        "ComfyUI"
+      ],
+      "status": "published",
+      "publishedAt": "2026-08-11T20:12:57Z",
+      "notes": [
+        "Replace prompt placeholders and supply your own input images, video or audio before running.",
+        "These model files require Hugging Face sign-in and acceptance of the publisher's access terms before downloading."
+      ]
+    }
+  ]
+}
