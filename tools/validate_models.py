@@ -26,8 +26,21 @@ CACHE = Path.home() / ".cache" / "comfyui-runtime-validator"
 
 
 def _git(*args: str) -> None:
+    # A pre-push hook runs under Git and can inherit repository-scoped Git
+    # variables.  Do not let those redirect the shared runtime cache command
+    # back into this template repository.
+    env = os.environ.copy()
+    for key in (
+        "GIT_DIR",
+        "GIT_WORK_TREE",
+        "GIT_INDEX_FILE",
+        "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    ):
+        env.pop(key, None)
     subprocess.run(["git", "-C", str(CACHE), *args], check=True,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                   env=env)
 
 
 def resolve_runtime(ref: str) -> Path:
@@ -46,19 +59,27 @@ def resolve_runtime(ref: str) -> Path:
     return CACHE
 
 
-def main() -> int:
+def runtime_dir() -> Path:
+    """Return the local override or the runtime checkout pinned by pins.json."""
     # COMFYUI_RUNTIME_DIR points at a local runtime checkout, used AS IS (no
     # git ops on it), for working on the two repos side by side.
     local = os.environ.get("COMFYUI_RUNTIME_DIR")
     if local:
-        runtime = Path(local)
-    else:
+        return Path(local)
+    try:
         ref = json.loads((REPO / "pins.json").read_text())["runtime_ref"]
-        try:
-            runtime = resolve_runtime(ref)
-        except subprocess.CalledProcessError as e:
-            print(f"FATAL: could not fetch comfyui-runtime at runtime_ref {ref!r}: {e}")
-            return 1
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        raise SystemExit(f"FATAL: could not read runtime_ref from pins.json: {e}")
+    try:
+        return resolve_runtime(ref)
+    except subprocess.CalledProcessError as e:
+        raise SystemExit(
+            f"FATAL: could not fetch comfyui-runtime at runtime_ref {ref!r}: {e}"
+        )
+
+
+def main() -> int:
+    runtime = runtime_dir()
     cmd = [sys.executable, str(runtime / "tools" / "validate_models.py"),
            "--registry", str(REPO / "src" / "models_registry.json"),
            "--workflows", str(REPO / "workflows"),
