@@ -21,6 +21,14 @@
       "publishedAt": "2026-07-07T11:27:07Z",
       "notes": [
         "Replace prompt placeholders and supply your own input images, video or audio before running."
+      ],
+      "difficulty": "Advanced",
+      "inputs": [
+        "Image",
+        "Text"
+      ],
+      "outputs": [
+        "Video"
       ]
     },
     {
@@ -41,6 +49,14 @@
       "publishedAt": "2026-06-19T10:49:26Z",
       "notes": [
         "Replace prompt placeholders and supply your own input images, video or audio before running."
+      ],
+      "difficulty": "Advanced",
+      "inputs": [
+        "Image",
+        "Text"
+      ],
+      "outputs": [
+        "Video"
       ]
     },
     {
@@ -62,6 +78,14 @@
       "publishedAt": "2026-06-19T04:56:59Z",
       "notes": [
         "Replace prompt placeholders and supply your own input images, video or audio before running."
+      ],
+      "difficulty": "Advanced",
+      "inputs": [
+        "Image",
+        "Text"
+      ],
+      "outputs": [
+        "Video"
       ]
     },
     {
@@ -83,6 +107,14 @@
       "publishedAt": "2026-06-19T10:49:26Z",
       "notes": [
         "Replace prompt placeholders and supply your own input images, video or audio before running."
+      ],
+      "difficulty": "Advanced",
+      "inputs": [
+        "Image",
+        "Text"
+      ],
+      "outputs": [
+        "Video"
       ]
     },
     {
@@ -104,6 +136,15 @@
       "notes": [
         "Replace prompt placeholders and supply your own input images, video or audio before running.",
         "These model files require Hugging Face sign-in and acceptance of the publisher's access terms before downloading."
+      ],
+      "difficulty": "Advanced",
+      "inputs": [
+        "Image",
+        "Text"
+      ],
+      "outputs": [
+        "Video",
+        "Audio"
       ]
     },
     {
@@ -125,6 +166,14 @@
       "notes": [
         "Replace prompt placeholders and supply your own input images, video or audio before running.",
         "These model files require Hugging Face sign-in and acceptance of the publisher's access terms before downloading."
+      ],
+      "difficulty": "Advanced",
+      "inputs": [
+        "Text"
+      ],
+      "outputs": [
+        "Video",
+        "Audio"
       ]
     }
   ]
