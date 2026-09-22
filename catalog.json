@@ -5,7 +5,7 @@
       "id": "ltx-2-3-face-id-video",
       "file": "workflows/Face-ID LTX LoRA.json",
       "title": "LTX 2.3 Face ID",
-      "description": "Guide video generation with Face ID conditioning and a reference image.",
+      "description": "Keep a real face consistent in AI video with LTX 2.3 Face ID. Upload a face and make AI influencer videos with the same identity, plus audio.",
       "model": "LTX 2.3",
       "output": "Video",
       "tags": [
@@ -29,13 +29,27 @@
       ],
       "outputs": [
         "Video"
+      ],
+      "body": "LTX 2.3 is a fast open-source AI video model that generates video and audio together. This Face ID workflow keeps a person's face the same throughout the video, which is key for believable AI influencers.\n\n**Great for:**\n- AI influencer videos with a consistent face\n- Personal avatars and talking clips\n- Characters that need to look like one person every time\n\n### How it works\n1. Upload a clear photo of the face.\n2. Write a short caption. The workflow describes the face and builds the prompt for you.\n3. Run it and get an upscaled video with audio.",
+      "settings": [
+        {
+          "label": "GPU",
+          "value": [
+            "RTX 5090",
+            "RTX PRO 6000"
+          ]
+        },
+        {
+          "label": "Settings",
+          "value": "Keep the workflow defaults. They are already tuned, so don't change them."
+        }
       ]
     },
     {
       "id": "ltx-2-3-motion-tracking",
       "file": "workflows/IC_LORA_Motion_Tracking.json",
       "title": "LTX 2.3 motion tracking",
-      "description": "Guide motion with track controls and the LTX 2.3 motion-tracking LoRA.",
+      "description": "Draw the motion yourself: LTX 2.3 motion tracking turns an image into AI video that follows your paths. Free ComfyUI workflow with audio.",
       "model": "LTX 2.3",
       "output": "Video",
       "tags": [
@@ -57,13 +71,27 @@
       ],
       "outputs": [
         "Video"
+      ],
+      "body": "LTX 2.3 is a fast open-source AI video model that generates video and audio together. With motion tracking you draw paths on your image, and the video follows them. You get precise control over where things move.\n\n**Great for:**\n- Directing exactly how an AI character moves\n- Animated and cartoon motion with a clear path\n- Camera-like movement from a still image\n\n### How it works\n1. Load your image.\n2. Draw motion paths in the track editor (right-click to add or remove them).\n3. Write your prompt and run it.",
+      "settings": [
+        {
+          "label": "GPU",
+          "value": [
+            "RTX 5090",
+            "RTX PRO 6000"
+          ]
+        },
+        {
+          "label": "Settings",
+          "value": "Keep the workflow defaults. They are already tuned, so don't change them."
+        }
       ]
     },
     {
       "id": "ltx-2-3-director",
       "file": "workflows/LTX_Director_2_Workflow_Hotfix.json",
       "title": "LTX 2.3 Director",
-      "description": "Use Director controls and reference guides to shape an LTX 2.3 video.",
+      "description": "Direct your AI video like a film: LTX Director lets you set keyframes, timed prompts and audio on a timeline. Free LTX 2.3 ComfyUI workflow.",
       "model": "LTX 2.3",
       "output": "Video",
       "tags": [
@@ -86,13 +114,27 @@
       ],
       "outputs": [
         "Video"
+      ],
+      "body": "LTX 2.3 is a fast open-source AI video model that generates video and audio together. This workflow uses the [LTX Director](https://github.com/WhatDreamsCost/WhatDreamsCost-ComfyUI) node by WhatDreamsCost, which works like a video editor timeline: instead of one prompt for the whole clip, you plan it beat by beat.\n\n**Great for:**\n- Story-driven AI character videos with several actions\n- Keeping an AI influencer consistent with a global prompt and keyframe images\n- Cartoon shorts with planned start and end frames\n\n### How it works\n1. Add prompt segments to the timeline, each with its own timing.\n2. Drop in keyframe images as start, middle or end frames, and add your own audio if you like.\n3. Write a global prompt for the character and scene, then run it. Two passes upscale the video and generate audio.",
+      "settings": [
+        {
+          "label": "GPU",
+          "value": [
+            "RTX 5090",
+            "RTX PRO 6000"
+          ]
+        },
+        {
+          "label": "Settings",
+          "value": "Keep the workflow defaults. They are already tuned, so don't change them."
+        }
       ]
     },
     {
       "id": "ltx-2-3-text-image-to-video",
       "file": "workflows/LTX2.3-T2V_I2V.json",
       "title": "LTX 2.3 text and image to video",
-      "description": "Generate a video from text or a starting image, with a latent-upscaling stage.",
+      "description": "LTX 2.3 text-to-video and image-to-video in one free ComfyUI workflow. Fast AI video with audio for AI influencers, characters and cartoons.",
       "model": "LTX 2.3",
       "output": "Video",
       "tags": [
@@ -115,13 +157,27 @@
       ],
       "outputs": [
         "Video"
+      ],
+      "body": "LTX 2.3 is a fast open-source AI video model that generates video and audio together. One workflow covers both modes: start from a prompt, or switch on image-to-video to animate your own picture.\n\n**Great for:**\n- Fast AI influencer and character clips\n- Animating cartoon and anime art\n- Trying ideas quickly before a bigger render\n\n### How it works\n1. Choose text-to-video or image-to-video.\n2. Write your prompt (and load an image for image-to-video).\n3. Run it. A second pass upscales the result, with audio.\n\n### Make it yours with LoRAs\nThis workflow supports LoRAs. Grab character, style, anime or cartoon LoRAs from [CivitAI](https://civitai.com) or [Hugging Face](https://huggingface.co), drop them into the LoRA loader, and keep your AI character looking the same in every shot.",
+      "settings": [
+        {
+          "label": "GPU",
+          "value": [
+            "RTX 5090",
+            "RTX PRO 6000"
+          ]
+        },
+        {
+          "label": "Settings",
+          "value": "Keep the workflow defaults. They are already tuned, so don't change them."
+        }
       ]
     },
     {
       "id": "ltx-2-5-image-to-video",
       "file": "workflows/LTX2.5/video_ltx2_5_i2v.json",
       "title": "LTX 2.5 image to video",
-      "description": "Animate a starting image with LTX 2.5, generated audio and latent upscaling.",
+      "description": "Animate any image with LTX 2.5 image-to-video and get AI video with sound. Free ComfyUI workflow for AI influencers, characters and cartoons.",
       "model": "LTX 2.5",
       "output": "Video",
       "tags": [
@@ -145,13 +201,27 @@
       "outputs": [
         "Video",
         "Audio"
+      ],
+      "body": "LTX 2.5 is the newest LTX open-source AI video model, with native audio and a two-pass upscale for sharp results. Start from your image, so your AI character keeps its look, and get a clip with audio.\n\n**Great for:**\n- Animating AI influencer photos\n- Bringing cartoon and anime art to life\n- Product and portrait videos with sound\n\n### How it works\n1. Load your image as the first frame.\n2. Describe the motion and sound.\n3. Run it. A second pass upscales the result.",
+      "settings": [
+        {
+          "label": "GPU",
+          "value": [
+            "RTX 5090",
+            "RTX PRO 6000"
+          ]
+        },
+        {
+          "label": "Settings",
+          "value": "Keep the workflow defaults. They are already tuned, so don't change them."
+        }
       ]
     },
     {
       "id": "ltx-2-5-text-to-video",
       "file": "workflows/LTX2.5/video_ltx2_5_t2v.json",
       "title": "LTX 2.5 text to video",
-      "description": "Generate video and audio from a scene prompt with LTX 2.5 and latent upscaling.",
+      "description": "Free LTX 2.5 text-to-video ComfyUI workflow: generate sharp AI video with sound from a prompt. Great for AI influencer and cartoon content.",
       "model": "LTX 2.5",
       "output": "Video",
       "tags": [
@@ -174,6 +244,20 @@
       "outputs": [
         "Video",
         "Audio"
+      ],
+      "body": "LTX 2.5 is the newest LTX open-source AI video model, with native audio and a two-pass upscale for sharp results. Type a prompt and get a high-resolution clip with audio.\n\n**Great for:**\n- High-resolution AI influencer and character clips\n- Cartoon and animated scenes\n- Social media video with built-in sound\n\n### How it works\n1. Write your prompt.\n2. Pick an aspect ratio.\n3. Run it. A second pass upscales the video and the audio is generated with it.",
+      "settings": [
+        {
+          "label": "GPU",
+          "value": [
+            "RTX 5090",
+            "RTX PRO 6000"
+          ]
+        },
+        {
+          "label": "Settings",
+          "value": "Keep the workflow defaults. They are already tuned, so don't change them."
+        }
       ]
     }
   ]
