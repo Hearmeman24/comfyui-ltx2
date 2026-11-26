@@ -15,6 +15,7 @@ Stdlib only.
 """
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -23,9 +24,10 @@ REPO = Path(__file__).resolve().parents[1]
 RUNTIME_URL = "https://github.com/Hearmeman24/comfyui-runtime.git"
 # Reuse one cached clone across runs (pre-push calls this on every push).
 CACHE = Path.home() / ".cache" / "comfyui-runtime-validator"
+FULL_SHA = re.compile(r"[0-9a-fA-F]{40}")
 
 
-def _git(*args: str) -> None:
+def _git_env() -> dict:
     # A pre-push hook runs under Git and can inherit repository-scoped Git
     # variables.  Do not let those redirect the shared runtime cache command
     # back into this template repository.
@@ -38,24 +40,40 @@ def _git(*args: str) -> None:
         "GIT_ALTERNATE_OBJECT_DIRECTORIES",
     ):
         env.pop(key, None)
+    return env
+
+
+def _git(*args: str) -> None:
     subprocess.run(["git", "-C", str(CACHE), *args], check=True,
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                   env=env)
+                   env=_git_env())
+
+
+def _has_commit(sha: str) -> bool:
+    return subprocess.run(
+        ["git", "-C", str(CACHE), "cat-file", "-e", f"{sha}^{{commit}}"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+        env=_git_env()).returncode == 0
 
 
 def resolve_runtime(ref: str) -> Path:
     if not (CACHE / ".git").is_dir():
         CACHE.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(["git", "clone", "--quiet", RUNTIME_URL, str(CACHE)],
-                       check=True)
-    # Fetch only when the pinned ref is not already local, so the offline
-    # pre-push path stays offline once the ref has been seen.
-    try:
-        _git("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}")
-    except subprocess.CalledProcessError:
+                       check=True, env=_git_env())
+    # Only a full commit sha is immutable, so only a full sha that is already
+    # in the cache may skip the network. Any other ref (the pinned `stable` is
+    # a BRANCH) is fetched on every run: a copy of it in the cache is just
+    # whatever origin held when it was last seen. On 2026-11-26 the cache's
+    # local `stable` sat at 0ea1f91 while origin's was 1e97ec1, and provisioner
+    # tests failed locally while CI (fresh clone) was green. A failed fetch is
+    # FATAL, never a silent fall back to the cached copy.
+    if FULL_SHA.fullmatch(ref) and _has_commit(ref):
+        target = ref
+    else:
         _git("fetch", "--quiet", "origin", ref)
-        ref = "FETCH_HEAD"
-    _git("checkout", "--quiet", "--force", ref)
+        target = "FETCH_HEAD"
+    _git("checkout", "--quiet", "--force", "--detach", target)
     return CACHE
 
 
